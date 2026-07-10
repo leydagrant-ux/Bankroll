@@ -12,7 +12,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/chip-192.png">
 <style>
   :root {
-    --page: #f7f6f2;
+    --page: #175640;
     --surface: #fffefb;
     --surface-2: #f1efe8;
     --ink: #16150f;
@@ -30,7 +30,7 @@
     --loss-wash: rgba(208, 59, 59, 0.08);
     --ring: rgba(22, 21, 15, 0.10);
     --shadow: 0 1px 3px rgba(22, 21, 15, 0.06), 0 4px 16px rgba(22, 21, 15, 0.04);
-    --tabbar: rgba(255, 254, 251, 0.92);
+    --tabbar: rgba(10, 31, 23, 0.9);
     /* felt table — deliberately the same in both themes */
     --felt: #14503a;
     --felt-hi: #1e6b4c;
@@ -39,10 +39,13 @@
     --felt-win: #8ef0b5;
     --felt-loss: #ffa8a8;
     --rail: #9d7f35;
+    /* tab bar sits on dark felt in both themes */
+    --tab-idle: rgba(247, 241, 221, 0.6);
+    --tab-active: #e6c96f;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --page: #0c110e;
+      --page: #0c2a1f;
       --surface: #151b17;
       --surface-2: #1d241f;
       --ink: #f4f3ee;
@@ -60,11 +63,11 @@
       --loss-wash: rgba(208, 59, 59, 0.12);
       --ring: rgba(255, 255, 255, 0.10);
       --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
-      --tabbar: rgba(17, 23, 19, 0.92);
+      --tabbar: rgba(6, 20, 15, 0.9);
     }
   }
   :root[data-theme="light"] {
-    --page: #f7f6f2;
+    --page: #175640;
     --surface: #fffefb;
     --surface-2: #f1efe8;
     --ink: #16150f;
@@ -82,10 +85,10 @@
     --loss-wash: rgba(208, 59, 59, 0.08);
     --ring: rgba(22, 21, 15, 0.10);
     --shadow: 0 1px 3px rgba(22, 21, 15, 0.06), 0 4px 16px rgba(22, 21, 15, 0.04);
-    --tabbar: rgba(255, 254, 251, 0.92);
+    --tabbar: rgba(10, 31, 23, 0.9);
   }
   :root[data-theme="dark"] {
-    --page: #0c110e;
+    --page: #0c2a1f;
     --surface: #151b17;
     --surface-2: #1d241f;
     --ink: #f4f3ee;
@@ -103,13 +106,17 @@
     --loss-wash: rgba(208, 59, 59, 0.12);
     --ring: rgba(255, 255, 255, 0.10);
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
-    --tabbar: rgba(17, 23, 19, 0.92);
+    --tabbar: rgba(6, 20, 15, 0.9);
   }
 
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
-    background: var(--page);
+    /* the table: lighting glow, suit-pattern weave, felt base */
+    background-color: var(--page);
+    background-image:
+      radial-gradient(120% 62% at 50% 0%, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 62%),
+      url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='104' height='104' viewBox='0 0 104 104'><g fill='%23ffffff' fill-opacity='0.05'><path d='M26 8c5.6 5.6 8 8 8 10.8a3.6 3.6 0 0 1-6.8 1.6c.24 1.6.8 2.4 1.6 3.2h-5.6c.8-.8 1.36-1.6 1.6-3.2a3.6 3.6 0 0 1-6.8-1.6C18 16 20.4 13.6 26 8z'/><path d='M78 34l5.6 8L78 50l-5.6-8z'/><path d='M26 86c-5.6-5.6-8-8-8-10.8a3.6 3.6 0 0 1 6.8-1.6 3.6 3.6 0 0 1 2.4 0 3.6 3.6 0 0 1 6.8 1.6C34 78 31.6 80.4 26 86z' transform='translate(0,-6)'/><circle cx='78' cy='78' r='3.4'/><circle cx='74' cy='83' r='3.4'/><circle cx='82' cy='83' r='3.4'/><path d='M76.8 84.5c0 2.2-.4 3.4-1.2 4.3h4.8c-.8-.9-1.2-2.1-1.2-4.3z'/></g></svg>");
     color: var(--ink);
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -140,7 +147,7 @@
     gap: 16px;
   }
   .splash img { width: 72px; height: 72px; border-radius: 50%; }
-  .splash .name { font-size: 20px; font-weight: 800; letter-spacing: 0.01em; }
+  .splash .name { font-size: 20px; font-weight: 800; letter-spacing: 0.01em; color: var(--felt-ink); }
   .auth-card { width: 100%; max-width: 400px; }
   .auth-head {
     text-align: center;
@@ -189,6 +196,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    color: var(--felt-ink);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
   .wordmark .chip-dot {
     width: 14px; height: 14px;
@@ -201,7 +210,7 @@
   .top .view-title {
     font-size: 13px;
     font-weight: 600;
-    color: var(--muted);
+    color: var(--felt-muted);
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
@@ -293,7 +302,7 @@
     position: absolute;
     pointer-events: none;
     background: var(--ink);
-    color: var(--page);
+    color: var(--surface);
     font-size: 12px;
     line-height: 1.45;
     padding: 7px 10px;
@@ -320,7 +329,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.09em;
-    color: var(--muted);
+    color: var(--felt-muted);
     padding: 8px 4px 2px;
   }
   .sess-list { display: flex; flex-direction: column; gap: 8px; }
@@ -407,12 +416,13 @@
     position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
     color: var(--muted); font-size: 16px; pointer-events: none;
   }
-  .money-input input { padding-left: 28px; }
+  /* .field input[type=...] outguns .money-input input, so match its specificity */
+  .field .money-input input { padding-left: 30px; }
   .money-input .suffix {
     left: auto; right: 12px;
     font-size: 14px;
   }
-  .money-input:has(.suffix) input { padding-right: 40px; }
+  .field .money-input:has(.suffix) input { padding-right: 40px; }
 
   .btn {
     display: inline-flex;
@@ -500,6 +510,39 @@
   .backup-note { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-top: 10px; }
 
   /* ---------- league ---------- */
+  .league-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .lg-chip {
+    flex: none;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+    padding: 9px 16px;
+    font-size: 13.5px;
+    font-weight: 650;
+    background: rgba(0, 0, 0, 0.18);
+    color: var(--felt-ink);
+    max-width: 60vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lg-chip.on {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: 1px dashed rgba(255, 255, 255, 0.6);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  }
+  .btn-felt {
+    background: rgba(0, 0, 0, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: var(--felt-ink);
+    font-weight: 600;
+  }
   .code-line {
     display: flex;
     align-items: center;
@@ -533,7 +576,7 @@
     background: var(--tabbar);
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
-    border-top: 1px solid var(--hairline);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     z-index: 20;
   }
   .tabbar-inner {
@@ -551,14 +594,14 @@
     align-items: center;
     gap: 3px;
     padding: 6px 2px;
-    color: var(--muted);
+    color: var(--tab-idle);
     font-size: 10px;
     font-weight: 650;
     letter-spacing: 0.02em;
     border-radius: 10px;
   }
   .tab-btn svg { width: 23px; height: 23px; }
-  .tab-btn[aria-selected="true"] { color: var(--accent-deep); }
+  .tab-btn[aria-selected="true"] { color: var(--tab-active); }
   .tab-btn.add-tab svg {
     width: 34px; height: 34px;
     color: var(--accent-ink);
@@ -600,7 +643,7 @@
     bottom: calc(92px + env(safe-area-inset-bottom, 0px));
     transform: translateX(-50%) translateY(8px);
     background: var(--ink);
-    color: var(--page);
+    color: var(--surface);
     font-size: 14px;
     font-weight: 600;
     padding: 10px 18px;
@@ -687,9 +730,13 @@
             </div>
             <div class="field">
               <label for="fLocation">Location</label>
-              <input type="text" id="fLocation" placeholder="e.g. Palace Poker" list="locList" autocomplete="off">
-              <datalist id="locList"></datalist>
+              <select id="fLocation"></select>
             </div>
+          </div>
+
+          <div class="field" id="locOtherField" hidden>
+            <label for="fLocationOther">Name the spot</label>
+            <input type="text" id="fLocationOther" maxlength="40" placeholder="e.g. Mike's garage game" autocomplete="off">
           </div>
 
           <div class="field">
@@ -1058,6 +1105,7 @@ let gameType = "cash";
 let statsGroup = "stakes";
 let activeLeague = null;    // league code
 let lbMode = "week";        // week | all | history
+let leagueFormMode = null;  // null | "create" | "join" — inline add-league form when already in leagues
 let historyWeek = null;
 const leagueData = new Map();   // code -> { league, stats } | null while loading
 const leagueSubs = new Map();   // code -> unsubscribe
@@ -1413,12 +1461,25 @@ function setGameType(t) {
 $("gtCash").addEventListener("click", () => setGameType("cash"));
 $("gtTourney").addEventListener("click", () => setGameType("tournament"));
 
+const PRESET_LOCATIONS = ["Texas Card House", "Palace Poker", "ClubGG", "Private Game", "Casino"];
+const OTHER_LOC = "__other";
+
 function refreshDatalists() {
-  const locs = [...new Set(sessions.map(s => s.location).filter(Boolean))].sort();
   const stakes = [...new Set(sessions.map(s => s.stakes).filter(Boolean))].sort();
-  $("locList").innerHTML = locs.map(l => `<option value="${esc(l)}">`).join("");
   $("stakesList").innerHTML = stakes.map(s => `<option value="${esc(s)}">`).join("");
+  refreshLocationOptions();
 }
+function refreshLocationOptions(selected) {
+  const sel = $("fLocation");
+  const keep = selected !== undefined ? selected : sel.value;
+  const customs = [...new Set(sessions.map(s => s.location).filter(l => l && !PRESET_LOCATIONS.includes(l)))].sort();
+  sel.innerHTML = [...PRESET_LOCATIONS, ...customs].map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join("")
+    + `<option value="${OTHER_LOC}">Other…</option>`;
+  if (keep && (PRESET_LOCATIONS.includes(keep) || customs.includes(keep) || keep === OTHER_LOC)) sel.value = keep;
+  syncLocOther();
+}
+function syncLocOther() { $("locOtherField").hidden = $("fLocation").value !== OTHER_LOC; }
+$("fLocation").addEventListener("change", syncLocOther);
 
 function liveFee() {
   if (gameType === "tournament") return 0;
@@ -1460,7 +1521,8 @@ function startEdit(id) {
   editingId = id;
   refreshDatalists();
   $("fDate").value = s.date;
-  $("fLocation").value = s.location;
+  refreshLocationOptions(s.location || OTHER_LOC);
+  $("fLocationOther").value = "";
   setGameType(s.gameType);
   $("fGame").value = s.game;
   if ($("fGame").value !== s.game) $("fGame").value = "Other";
@@ -1510,12 +1572,13 @@ $("sessForm").addEventListener("submit", async (e) => {
   if (!Number.isFinite(buyIn) || buyIn < 0) return toast("Enter your buy-in");
   if (!Number.isFinite(cashOut) || cashOut < 0) return toast("Enter your cash-out (0 if you busted)");
 
+  const locSel = $("fLocation").value;
   const existing = editingId ? sessions.find(s => s.id === editingId) : null;
   const rec = {
     id: editingId || uuid(),
     createdAt: existing?.createdAt || Date.now(),
     date,
-    location: $("fLocation").value.trim(),
+    location: locSel === OTHER_LOC ? $("fLocationOther").value.trim() : locSel,
     gameType,
     game: $("fGame").value,
     stakes: $("fStakes").value.trim() || "?",
@@ -1650,6 +1713,46 @@ const genCode = () => {
   return c;
 };
 
+const CREATE_CARD_HTML = `
+  <div class="card">
+    <h2>Start a league</h2>
+    <div class="form-grid">
+      <div class="field"><label for="newLeagueName">League name</label>
+        <input type="text" id="newLeagueName" maxlength="30" placeholder="e.g. The Degens"></div>
+      <button type="button" class="btn btn-primary" id="createLeagueBtn">Create league</button>
+    </div>
+  </div>`;
+const JOIN_CARD_HTML = `
+  <div class="card">
+    <h2>Join a league</h2>
+    <div class="form-grid">
+      <div class="field"><label for="joinCode">Invite code</label>
+        <input type="text" id="joinCode" maxlength="6" placeholder="6 characters" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:0.2em"></div>
+      <button type="button" class="btn btn-ghost" id="joinLeagueBtn">Join</button>
+    </div>
+  </div>`;
+function bindLeagueForms(el) {
+  el.querySelector("#createLeagueBtn")?.addEventListener("click", createLeagueFlow);
+  el.querySelector("#joinLeagueBtn")?.addEventListener("click", joinLeagueFlow);
+  el.querySelector("#addLeagueBtn")?.addEventListener("click", () => { leagueFormMode = "create"; renderLeague(); });
+  el.querySelector("#joinAnotherBtn")?.addEventListener("click", () => { leagueFormMode = "join"; renderLeague(); });
+  el.querySelector("#cancelLeagueForm")?.addEventListener("click", () => { leagueFormMode = null; renderLeague(); });
+}
+function leagueChipsHTML(code) {
+  if (profile.leagueIds.length < 2) return "";
+  return `
+    <div class="league-chips" role="tablist" aria-label="Your leagues">
+      ${profile.leagueIds.map(c => `<button class="lg-chip ${c === code ? "on" : ""}" role="tab" aria-selected="${c === code}" data-code="${esc(c)}">${esc(leagueData.get(c)?.league?.name || c)}</button>`).join("")}
+    </div>`;
+}
+function bindChips(el) {
+  el.querySelectorAll(".lg-chip").forEach(ch => ch.addEventListener("click", () => {
+    activeLeague = ch.dataset.code;
+    leagueFormMode = null;
+    renderLeague();
+  }));
+}
+
 function renderLeague() {
   const el = $("leagueContent");
   if (!profile) return;
@@ -1662,40 +1765,18 @@ function renderLeague() {
           <div style="font-size:20px;font-weight:800;color:var(--felt-ink);margin:8px 0 4px">Play against your friends</div>
           <div style="font-size:13.5px;color:var(--felt-muted);line-height:1.5">Start a league and share the code, or join one you've been given. Only weekly totals are shared — your sessions stay yours.</div>
         </div>
-      </div>
-      <div class="card">
-        <h2>Start a league</h2>
-        <div class="form-grid">
-          <div class="field"><label for="newLeagueName">League name</label>
-            <input type="text" id="newLeagueName" maxlength="30" placeholder="e.g. The Degens"></div>
-          <button type="button" class="btn btn-primary" id="createLeagueBtn">Create league</button>
-        </div>
-      </div>
-      <div class="card">
-        <h2>Join a league</h2>
-        <div class="form-grid">
-          <div class="field"><label for="joinCode">Invite code</label>
-            <input type="text" id="joinCode" maxlength="6" placeholder="6 characters" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:0.2em"></div>
-          <button type="button" class="btn btn-ghost" id="joinLeagueBtn">Join</button>
-        </div>
-      </div>`;
-    $("createLeagueBtn").addEventListener("click", createLeagueFlow);
-    $("joinLeagueBtn").addEventListener("click", joinLeagueFlow);
+      </div>` + CREATE_CARD_HTML + JOIN_CARD_HTML;
+    bindLeagueForms(el);
     return;
   }
 
   const code = activeLeague;
   const data = leagueData.get(code);
-  const picker = profile.leagueIds.length > 1 ? `
-    <div class="field" style="margin-bottom:2px">
-      <select id="leaguePick" aria-label="Choose league">
-        ${profile.leagueIds.map(c => `<option value="${esc(c)}" ${c === code ? "selected" : ""}>${esc(leagueData.get(c)?.league?.name || c)}</option>`).join("")}
-      </select>
-    </div>` : "";
+  const chips = leagueChipsHTML(code);
 
   if (!data) {
-    el.innerHTML = picker + `<div class="card"><div class="empty">Dealing you in…</div></div>`;
-    bindLeaguePicker();
+    el.innerHTML = chips + `<div class="card"><div class="empty">Dealing you in…</div></div>`;
+    bindChips(el);
     return;
   }
 
@@ -1750,7 +1831,15 @@ function renderLeague() {
     }
   }
 
-  el.innerHTML = picker + `
+  const addRow = leagueFormMode
+    ? (leagueFormMode === "create" ? CREATE_CARD_HTML : JOIN_CARD_HTML)
+      + `<button type="button" class="btn btn-felt" id="cancelLeagueForm">Never mind</button>`
+    : `<div class="two-col">
+        <button type="button" class="btn btn-felt" id="addLeagueBtn">Start another league</button>
+        <button type="button" class="btn btn-felt" id="joinAnotherBtn">Join another league</button>
+      </div>`;
+
+  el.innerHTML = chips + `
     <div class="seg stat-seg" role="group" aria-label="Leaderboard range">
       <button type="button" data-lb="week" aria-pressed="${lbMode === "week"}">This week</button>
       <button type="button" data-lb="all" aria-pressed="${lbMode === "all"}">All-time</button>
@@ -1767,9 +1856,10 @@ function renderLeague() {
         <span></span>
         <button type="button" class="leave" id="leaveLeagueBtn">Leave league</button>
       </div>
-    </div>`;
+    </div>` + addRow;
 
-  bindLeaguePicker();
+  bindChips(el);
+  bindLeagueForms(el);
   el.querySelectorAll("[data-lb]").forEach(b => b.addEventListener("click", () => { lbMode = b.dataset.lb; renderLeague(); }));
   const hp = $("histPick");
   if (hp) hp.addEventListener("change", () => { historyWeek = hp.value; renderLeague(); });
@@ -1793,11 +1883,6 @@ function renderLeague() {
   });
 }
 
-function bindLeaguePicker() {
-  const lp = $("leaguePick");
-  if (lp) lp.addEventListener("change", () => { activeLeague = lp.value; renderLeague(); });
-}
-
 async function createLeagueFlow() {
   const name = $("newLeagueName").value.trim();
   if (!name) return toast("Give your league a name");
@@ -1807,6 +1892,7 @@ async function createLeagueFlow() {
     profile.leagueIds.push(code);
     await backend.saveProfile(ME.uid, { leagueIds: profile.leagueIds });
     activeLeague = code;
+    leagueFormMode = null;
     syncLeagueSubs();
     await pushStats(true);
     renderLeague();
@@ -1823,6 +1909,7 @@ async function joinLeagueFlow() {
     profile.leagueIds.push(code);
     await backend.saveProfile(ME.uid, { leagueIds: profile.leagueIds });
     activeLeague = code;
+    leagueFormMode = null;
     syncLeagueSubs();
     await pushStats(true);
     renderLeague();
