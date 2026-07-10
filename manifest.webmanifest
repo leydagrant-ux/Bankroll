@@ -1,0 +1,13 @@
+{
+  "name": "Bankroll",
+  "short_name": "Bankroll",
+  "description": "Poker bankroll tracker with a weekly leaderboard for your league.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0c110e",
+  "theme_color": "#14503a",
+  "icons": [
+    { "src": "icons/chip-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/chip-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

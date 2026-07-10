@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Each user's profile and sessions are private to them.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      match /sessions/{sessionId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // Leagues are gated by knowing the unguessable 6-char code (the doc id).
+    // No `list` rule anywhere, so leagues can't be enumerated.
+    match /leagues/{code} {
+      allow get: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.ownerUid == request.auth.uid;
+      // Owner can edit anything; anyone signed in may only touch memberUids (join/leave).
+      allow update: if request.auth != null && (
+        request.auth.uid == resource.data.ownerUid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids'])
+      );
+      allow delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
+
+      // Leaderboard stats: everyone signed-in (with the code) can read;
+      // each player can only write their own row.
+      match /stats/{uid} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+  }
+}
