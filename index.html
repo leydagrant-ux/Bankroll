@@ -1109,6 +1109,7 @@ let leagueFormMode = null;  // null | "create" | "join" — inline add-league fo
 let historyWeek = null;
 const leagueData = new Map();   // code -> { league, stats } | null while loading
 const leagueSubs = new Map();   // code -> unsubscribe
+const statsHealed = new Set();  // leagues we already re-pushed stats to this session
 let unsubSessions = null;
 let lastPushedStats = "";
 let pendingNickname = "";
@@ -1238,8 +1239,8 @@ backend.onAuth(async (user) => {
 function cleanup() {
   unsubSessions && unsubSessions(); unsubSessions = null;
   for (const u of leagueSubs.values()) u();
-  leagueSubs.clear(); leagueData.clear();
-  sessions = []; profile = null; activeLeague = null; lastPushedStats = "";
+  leagueSubs.clear(); leagueData.clear(); statsHealed.clear();
+  sessions = []; profile = null; activeLeague = null; leagueFormMode = null; lastPushedStats = "";
 }
 
 /* =====================================================================
@@ -1469,13 +1470,26 @@ function refreshDatalists() {
   $("stakesList").innerHTML = stakes.map(s => `<option value="${esc(s)}">`).join("");
   refreshLocationOptions();
 }
+function locationChoices() {
+  // case-insensitive: one entry per venue, preset spelling wins
+  const seen = new Set(PRESET_LOCATIONS.map(l => l.toLowerCase()));
+  const customs = [];
+  for (const s of sessions) {
+    const l = (s.location || "").trim();
+    if (l && !seen.has(l.toLowerCase())) { seen.add(l.toLowerCase()); customs.push(l); }
+  }
+  customs.sort((a, b) => a.localeCompare(b));
+  return [...PRESET_LOCATIONS, ...customs];
+}
 function refreshLocationOptions(selected) {
   const sel = $("fLocation");
   const keep = selected !== undefined ? selected : sel.value;
-  const customs = [...new Set(sessions.map(s => s.location).filter(l => l && !PRESET_LOCATIONS.includes(l)))].sort();
-  sel.innerHTML = [...PRESET_LOCATIONS, ...customs].map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join("")
+  const choices = locationChoices();
+  sel.innerHTML = choices.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join("")
     + `<option value="${OTHER_LOC}">Other…</option>`;
-  if (keep && (PRESET_LOCATIONS.includes(keep) || customs.includes(keep) || keep === OTHER_LOC)) sel.value = keep;
+  const canon = keep === OTHER_LOC ? OTHER_LOC
+    : choices.find(l => l.toLowerCase() === String(keep || "").trim().toLowerCase());
+  if (canon) sel.value = canon;
   syncLocOther();
 }
 function syncLocOther() { $("locOtherField").hidden = $("fLocation").value !== OTHER_LOC; }
@@ -1573,12 +1587,18 @@ $("sessForm").addEventListener("submit", async (e) => {
   if (!Number.isFinite(cashOut) || cashOut < 0) return toast("Enter your cash-out (0 if you busted)");
 
   const locSel = $("fLocation").value;
+  let location = locSel === OTHER_LOC ? $("fLocationOther").value.trim() : locSel;
+  if (locSel === OTHER_LOC && location) {
+    // typed a venue that already exists (any casing) → use the existing spelling
+    const canon = locationChoices().find(l => l.toLowerCase() === location.toLowerCase());
+    if (canon) location = canon;
+  }
   const existing = editingId ? sessions.find(s => s.id === editingId) : null;
   const rec = {
     id: editingId || uuid(),
     createdAt: existing?.createdAt || Date.now(),
     date,
-    location: locSel === OTHER_LOC ? $("fLocationOther").value.trim() : locSel,
+    location,
     gameType,
     game: $("fGame").value,
     stakes: $("fStakes").value.trim() || "?",
@@ -1699,6 +1719,13 @@ function syncLeagueSubs() {
       leagueData.set(code, null);
       leagueSubs.set(code, backend.subLeague(code, (data) => {
         leagueData.set(code, data);
+        // self-heal: member but no leaderboard row → our stats write got lost; re-push once
+        if (data && ME && data.league.memberUids.includes(ME.uid)
+            && !data.stats.some(s => s.uid === ME.uid) && !statsHealed.has(code)) {
+          statsHealed.add(code);
+          lastPushedStats = "";
+          pushStats(true);
+        }
         if (activeView === "league") renderLeague();
       }));
     }
@@ -1713,22 +1740,22 @@ const genCode = () => {
   return c;
 };
 
-const CREATE_CARD_HTML = `
-  <div class="card">
-    <h2>Start a league</h2>
-    <div class="form-grid">
-      <div class="field"><label for="newLeagueName">League name</label>
-        <input type="text" id="newLeagueName" maxlength="30" placeholder="e.g. The Degens"></div>
-      <button type="button" class="btn btn-primary" id="createLeagueBtn">Create league</button>
-    </div>
-  </div>`;
 const JOIN_CARD_HTML = `
   <div class="card">
-    <h2>Join a league</h2>
+    <h2>Got an invite code? Join your friends</h2>
     <div class="form-grid">
-      <div class="field"><label for="joinCode">Invite code</label>
-        <input type="text" id="joinCode" maxlength="6" placeholder="6 characters" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:0.2em"></div>
-      <button type="button" class="btn btn-ghost" id="joinLeagueBtn">Join</button>
+      <div class="field"><label for="joinCode">Invite code <span style="font-weight:400;color:var(--muted)">(6 characters, from whoever started the league)</span></label>
+        <input type="text" id="joinCode" maxlength="6" placeholder="e.g. K7M2XW" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:0.2em"></div>
+      <button type="button" class="btn btn-primary" id="joinLeagueBtn">Join league</button>
+    </div>
+  </div>`;
+const CREATE_CARD_HTML = `
+  <div class="card">
+    <h2>Start a new league</h2>
+    <div class="form-grid">
+      <div class="field"><label for="newLeagueName">League name <span style="font-weight:400;color:var(--muted)">(you'll get a fresh code to share)</span></label>
+        <input type="text" id="newLeagueName" maxlength="30" placeholder="e.g. The Degens"></div>
+      <button type="button" class="btn btn-ghost" id="createLeagueBtn">Create league</button>
     </div>
   </div>`;
 function bindLeagueForms(el) {
@@ -1763,9 +1790,9 @@ function renderLeague() {
         <div style="position:relative">
           <div class="label">Weekly leaderboard</div>
           <div style="font-size:20px;font-weight:800;color:var(--felt-ink);margin:8px 0 4px">Play against your friends</div>
-          <div style="font-size:13.5px;color:var(--felt-muted);line-height:1.5">Start a league and share the code, or join one you've been given. Only weekly totals are shared — your sessions stay yours.</div>
+          <div style="font-size:13.5px;color:var(--felt-muted);line-height:1.5">Join with the code a friend sent you, or start a league and share yours. Only weekly totals are shared — your sessions stay yours.</div>
         </div>
-      </div>` + CREATE_CARD_HTML + JOIN_CARD_HTML;
+      </div>` + JOIN_CARD_HTML + CREATE_CARD_HTML;
     bindLeagueForms(el);
     return;
   }
@@ -1835,8 +1862,8 @@ function renderLeague() {
     ? (leagueFormMode === "create" ? CREATE_CARD_HTML : JOIN_CARD_HTML)
       + `<button type="button" class="btn btn-felt" id="cancelLeagueForm">Never mind</button>`
     : `<div class="two-col">
-        <button type="button" class="btn btn-felt" id="addLeagueBtn">Start another league</button>
         <button type="button" class="btn btn-felt" id="joinAnotherBtn">Join another league</button>
+        <button type="button" class="btn btn-felt" id="addLeagueBtn">Start another league</button>
       </div>`;
 
   el.innerHTML = chips + `
