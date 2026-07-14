@@ -509,6 +509,72 @@
   .backup-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .backup-note { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-top: 10px; }
 
+  /* ---------- chip-stack race ---------- */
+  .race-row {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    align-items: flex-end;
+    padding: 2px 2px 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .race-col {
+    flex: none;
+    width: 58px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+  }
+  .race-crown { height: 16px; line-height: 16px; font-size: 13px; color: var(--accent); }
+  .race-stack.up { height: 118px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .race-stack.down { height: 50px; display: flex; flex-direction: column; justify-content: flex-start; }
+  .race-rail { width: 46px; height: 2px; background: var(--rail); border-radius: 1px; margin: 2px 0; flex: none; }
+  .chip {
+    display: block;
+    flex: none;
+    width: 30px; height: 8px;
+    margin-top: 2px;
+    border-radius: 4px;
+    background: var(--accent-wash);
+    border: 1px dashed var(--accent);
+    animation: chipDrop 0.35s ease-out backwards;
+  }
+  .chip.top { background: var(--accent); border-style: solid; }
+  .chip.neg { background: var(--loss-wash); border-color: var(--loss); }
+  @keyframes chipDrop {
+    from { opacity: 0; transform: translateY(-26px); }
+    to { opacity: 1; transform: none; }
+  }
+  .race-name {
+    font-size: 11px; font-weight: 650; color: var(--ink-2);
+    max-width: 58px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    margin-top: 6px;
+  }
+  .race-col.me .race-name { color: var(--accent-deep); }
+  .race-net { font-size: 11.5px; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .race-net.win { color: var(--win); }
+  .race-net.loss { color: var(--loss); }
+  .race-legend { font-size: 11px; color: var(--muted); text-align: right; margin: 6px 0 14px; }
+  @media (prefers-reduced-motion: reduce) { .chip { animation: none; } }
+
+  /* ---------- player detail ---------- */
+  table.stats tbody tr[data-uid] { cursor: pointer; }
+  .pl-back {
+    background: none; border: 0;
+    color: var(--accent-deep);
+    font-size: 13.5px; font-weight: 650;
+    padding: 0 0 12px; text-align: left;
+  }
+  .pl-name { font-size: 20px; font-weight: 800; }
+  .pl-net { font-size: 14px; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .pl-net.win { color: var(--win); }
+  .pl-net.loss { color: var(--loss); }
+  .pl-sub { font-size: 12.5px; color: var(--muted); margin: 4px 0 12px; }
+  .card .month-h { color: var(--muted); }
+  .sess-row.readonly { cursor: default; }
+  .sess-row.readonly:active { background: var(--surface); }
+
   /* ---------- league ---------- */
   .league-chips {
     display: flex;
@@ -1106,6 +1172,7 @@ let statsGroup = "stakes";
 let activeLeague = null;    // league code
 let lbMode = "week";        // week | all | history
 let leagueFormMode = null;  // null | "create" | "join" — inline add-league form when already in leagues
+let playerView = null;      // uid of leaguemate whose sessions are open, or null
 let historyWeek = null;
 const leagueData = new Map();   // code -> { league, stats } | null while loading
 const leagueSubs = new Map();   // code -> unsubscribe
@@ -1254,6 +1321,7 @@ function showView(name) {
   document.querySelectorAll(".tab-btn").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === name)));
   $("viewTitle").textContent = VIEW_TITLES[name];
   if (name === "add" && !editingId) resetForm();
+  if (name === "league") playerView = null;
   renderActive();
   window.scrollTo(0, 0);
 }
@@ -1693,6 +1761,12 @@ function buildStatsDoc() {
     nickname: profile.nickname,
     allTime: { net: r2(a.net), hours: r2(a.hours), sessions: a.count },
     weeks,
+    // shared with leaguemates — deliberately NO notes and no ids
+    sessions: sorted().slice(-150).map(s => ({
+      date: s.date, location: s.location, gameType: s.gameType, game: s.game,
+      stakes: s.stakes, durationMinutes: s.durationMinutes,
+      buyIn: s.buyIn, cashOut: s.cashOut, hourlyFee: s.hourlyFee || 0,
+    })),
   };
 }
 async function pushStats(force = false) {
@@ -1776,8 +1850,85 @@ function bindChips(el) {
   el.querySelectorAll(".lg-chip").forEach(ch => ch.addEventListener("click", () => {
     activeLeague = ch.dataset.code;
     leagueFormMode = null;
+    playerView = null;
     renderLeague();
   }));
+}
+
+/* ---------- chip-stack race ---------- */
+const CHIP_STEPS = [5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000];
+function raceHTML(rows) {
+  if (!rows.some(r => r.sessions > 0)) return "";
+  const maxAbs = Math.max(...rows.map(r => Math.abs(r.net)), 1);
+  const chipUnit = CHIP_STEPS.find(v => maxAbs / v <= 10) || Math.ceil(maxAbs / 10 / 5000) * 5000;
+  const leaderUid = rows[0].net > 0 ? rows[0].uid : null; // rows arrive sorted by net desc
+  const cols = rows.map(r => {
+    const up = r.net >= 0;
+    const n = Math.min(up ? 10 : 4, Math.round(Math.abs(r.net) / chipUnit));
+    const chips = Array.from({ length: n }, (_, i) =>
+      `<i class="chip ${up ? (i === 0 ? "top" : "") : "neg"}" style="animation-delay:${(n - 1 - i) * 70}ms"></i>`).join("");
+    return `
+      <div class="race-col ${r.uid === ME.uid ? "me" : ""}" data-uid="${esc(r.uid)}" role="button" aria-label="View ${esc(r.nickname)}'s sessions">
+        <div class="race-crown">${r.uid === leaderUid && n > 0 ? "&#9819;" : ""}</div>
+        <div class="race-stack up">${up ? chips : ""}</div>
+        <div class="race-rail"></div>
+        <div class="race-stack down">${up ? "" : chips}</div>
+        <div class="race-name">${esc(r.nickname)}</div>
+        <div class="race-net ${plClass(r.net)}">${fmtSigned(r2(r.net))}</div>
+      </div>`;
+  }).join("");
+  return `<div class="race-row">${cols}</div><div class="race-legend">1 chip = ${fmtMoney(chipUnit)}</div>`;
+}
+
+/* ---------- player detail (read-only) ---------- */
+function playerCardHTML(p) {
+  if (!p) return `<div class="card"><div class="empty">Player not found.</div></div>`;
+  const a = p.allTime || { net: 0, hours: 0, sessions: 0 };
+  const list = (p.sessions || []).slice().reverse();
+  let listHTML;
+  if (!list.length) {
+    listHTML = `<div class="empty">No shared sessions yet — they'll appear once ${esc(p.nickname || "this player")} opens the app.</div>`;
+  } else {
+    let html = "", curMonth = "";
+    for (const s of list) {
+      const m = parseDate(s.date).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      if (m !== curMonth) {
+        if (curMonth) html += `</div>`;
+        html += `<div class="month-h">${esc(m)}</div><div class="sess-list">`;
+        curMonth = m;
+      }
+      const pr = profitOf(s);
+      const hr = hoursOf(s) > 0 ? pr / hoursOf(s) : 0;
+      html += `
+        <div class="sess-row readonly">
+          <div class="sess-main">
+            <div class="sess-loc">${esc(s.location || "—")}</div>
+            <div class="sess-sub">
+              <span class="stake-chip">${esc(stakesLabel(s))}</span>
+              <span>${esc(s.game)}</span><span>·</span>
+              <span>${esc(fmtDateShort(s.date))}</span><span>·</span>
+              <span>${fmtDur(s.durationMinutes)}</span>${s.hourlyFee ? `<span>·</span><span>${fmtMoney(s.hourlyFee)}/hr time</span>` : ""}
+            </div>
+          </div>
+          <div class="sess-amt">
+            <div class="p ${plClass(pr)}">${fmtSigned(r2(pr))}</div>
+            <div class="h">${fmtSigned(Math.round(hr))}/hr</div>
+          </div>
+        </div>`;
+    }
+    html += `</div>`;
+    listHTML = html;
+  }
+  return `
+    <div class="card">
+      <button type="button" class="pl-back" id="backToBoard">&#8249; Back to leaderboard</button>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px">
+        <div class="pl-name">${esc(p.nickname || "?")}</div>
+        <div class="pl-net ${plClass(a.net)}">${fmtSigned(r2(a.net))} all-time</div>
+      </div>
+      <div class="pl-sub">${a.sessions} session${a.sessions === 1 ? "" : "s"} · ${(a.hours || 0).toFixed(1).replace(/\.0$/, "")} hrs · ${a.hours > 0 ? fmtSigned(r2(a.net / a.hours)) + "/hr" : "—"}</div>
+      ${listHTML}
+    </div>`;
 }
 
 function renderLeague() {
@@ -1790,7 +1941,7 @@ function renderLeague() {
         <div style="position:relative">
           <div class="label">Weekly leaderboard</div>
           <div style="font-size:20px;font-weight:800;color:var(--felt-ink);margin:8px 0 4px">Play against your friends</div>
-          <div style="font-size:13.5px;color:var(--felt-muted);line-height:1.5">Join with the code a friend sent you, or start a league and share yours. Only weekly totals are shared — your sessions stay yours.</div>
+          <div style="font-size:13.5px;color:var(--felt-muted);line-height:1.5">Join with the code a friend sent you, or start a league and share yours. Leaguemates see each other's sessions and results — your table notes always stay private.</div>
         </div>
       </div>` + JOIN_CARD_HTML + CREATE_CARD_HTML;
     bindLeagueForms(el);
@@ -1810,6 +1961,13 @@ function renderLeague() {
   const { league, stats } = data;
   const wk = currentWeekKey();
 
+  if (playerView) {
+    el.innerHTML = chips + playerCardHTML(stats.find(s => s.uid === playerView));
+    bindChips(el);
+    $("backToBoard")?.addEventListener("click", () => { playerView = null; renderLeague(); });
+    return;
+  }
+
   const rowsFor = (key) => stats
     .map(s => {
       const v = key === "all" ? (s.allTime || { net: 0, hours: 0, sessions: 0 })
@@ -1824,7 +1982,7 @@ function renderLeague() {
         <thead><tr><th scope="col">Player</th><th scope="col">Net</th><th scope="col">Hrs</th><th scope="col">$/hr</th></tr></thead>
         <tbody>
           ${rows.map((r, i) => `
-            <tr class="${r.uid === ME.uid ? "me" : ""}">
+            <tr class="${r.uid === ME.uid ? "me" : ""}" data-uid="${esc(r.uid)}" role="button" aria-label="View ${esc(r.nickname)}'s sessions">
               <td class="name"><span class="rank ${i === 0 && r.net > 0 ? "r1" : ""}">${i + 1}</span>&nbsp; ${esc(r.nickname)}</td>
               <td><span class="${plClass(r.net)}">${fmtSigned(r2(r.net))}</span></td>
               <td>${r.hours.toFixed(1).replace(/\.0$/, "")}</td>
@@ -1839,7 +1997,7 @@ function renderLeague() {
     const rows = rowsFor(wk);
     const anyPlay = rows.some(r => r.sessions > 0);
     body = `<h2>This week · ${weekRange(wk)}</h2>` +
-      (anyPlay ? table(rows) : `<div class="empty">Nobody's logged a session yet this week.<br>First one on the board sets the pace.</div>`);
+      (anyPlay ? raceHTML(rows) + table(rows) : `<div class="empty">Nobody's logged a session yet this week.<br>First one on the board sets the pace.</div>`);
   } else if (lbMode === "all") {
     body = `<h2>All-time</h2>` + table(rowsFor("all"));
   } else {
@@ -1874,7 +2032,7 @@ function renderLeague() {
     </div>
     <div class="card">
       ${body}
-      <p class="lb-note">${esc(league.name)} · ${league.memberUids.length} player${league.memberUids.length === 1 ? "" : "s"} · Week runs Mon–Sun. Net is after buy-ins, cash-outs, and time fees.</p>
+      <p class="lb-note">${esc(league.name)} · ${league.memberUids.length} player${league.memberUids.length === 1 ? "" : "s"} · Week runs Mon–Sun. Net is after buy-ins, cash-outs, and time fees. Tap a player to see their sessions (notes stay private).</p>
       <div class="code-line" style="margin-top:12px">
         <span>Invite code&nbsp; <span class="code">${esc(code)}</span></span>
         <button type="button" id="shareCodeBtn">Share</button>
@@ -1887,6 +2045,7 @@ function renderLeague() {
 
   bindChips(el);
   bindLeagueForms(el);
+  el.querySelectorAll("[data-uid]").forEach(x => x.addEventListener("click", () => { playerView = x.dataset.uid; renderLeague(); }));
   el.querySelectorAll("[data-lb]").forEach(b => b.addEventListener("click", () => { lbMode = b.dataset.lb; renderLeague(); }));
   const hp = $("histPick");
   if (hp) hp.addEventListener("change", () => { historyWeek = hp.value; renderLeague(); });
