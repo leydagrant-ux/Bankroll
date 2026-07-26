@@ -924,6 +924,14 @@
             <input type="text" id="nickInput" maxlength="20" autocomplete="off">
           </div>
           <button type="button" class="btn btn-ghost" id="nickSaveBtn">Save nickname</button>
+          <div class="field">
+            <label id="shareLabel">Session sharing <span style="font-weight:400;color:var(--muted)">(what leaguemates can see)</span></label>
+            <div class="seg" role="group" aria-labelledby="shareLabel">
+              <button type="button" id="shareOff" aria-pressed="true">Totals only</button>
+              <button type="button" id="shareOn" aria-pressed="false">Full sessions</button>
+            </div>
+            <p class="backup-note" style="margin-top:8px">Your nickname and weekly &amp; all-time totals are always shared. <strong>Full sessions</strong> also shares each session's date, location, stakes, buy-in, cash-out, and length. Your notes are never shared.</p>
+          </div>
           <p class="backup-note" id="acctEmail" style="margin-top:0"></p>
           <button type="button" class="btn btn-danger" id="signOutBtn">Sign out</button>
         </div>
@@ -992,6 +1000,7 @@ const fmtMoney = (n) => {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", ...opts }).format(n);
 };
 const fmtSigned = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + fmtMoney(Math.abs(n));
+const fmtPct = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + (Math.abs(n) * 100).toFixed(1).replace(/\.0$/, "") + "%";
 const plClass = (n) => n > 0 ? "win" : n < 0 ? "loss" : "";
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -1016,10 +1025,11 @@ const stakesLabel = (s) => s.gameType === "tournament" ? `${s.stakes} MTT` : s.s
 function aggregate(list) {
   const net = list.reduce((t, s) => t + profitOf(s), 0);
   const hours = list.reduce((t, s) => t + hoursOf(s), 0);
+  const buyIn = list.reduce((t, s) => t + s.buyIn, 0);
   const wins = list.filter(s => profitOf(s) > 0).length;
   const losses = list.filter(s => profitOf(s) < 0).length;
   const push = list.length - wins - losses;
-  return { net, hours, wins, losses, push, count: list.length, hourly: hours > 0 ? net / hours : 0 };
+  return { net, hours, buyIn, wins, losses, push, count: list.length, hourly: hours > 0 ? net / hours : 0, roi: buyIn > 0 ? net / buyIn : null };
 }
 
 /* ---------- ISO week (Monday-based) ---------- */
@@ -1306,13 +1316,15 @@ backend.onAuth(async (user) => {
   }
   profile = await backend.getProfile(user.uid);
   if (!profile) {
-    profile = { nickname: pendingNickname || user.email.split("@")[0], leagueIds: [] };
+    profile = { nickname: pendingNickname || user.email.split("@")[0], leagueIds: [], shareSessions: false };
     await backend.saveProfile(user.uid, profile);
   }
   if (!Array.isArray(profile.leagueIds)) profile.leagueIds = [];
+  if (typeof profile.shareSessions !== "boolean") profile.shareSessions = false;
   $("authView").hidden = true;
   $("appView").hidden = false;
   $("nickInput").value = profile.nickname;
+  setShareToggle(profile.shareSessions);
   $("acctEmail").textContent = `Signed in as ${user.email}`;
   unsubSessions = backend.subSessions(user.uid, (list) => {
     sessions = list;
@@ -1387,7 +1399,7 @@ function renderDash() {
       <div class="tiles">
         <div class="tile"><div class="t-label">Hourly</div><div class="t-value ${plClass(a.hourly)}">${fmtSigned(r2(a.hourly))}</div></div>
         <div class="tile"><div class="t-label">Hours</div><div class="t-value">${a.hours.toFixed(1).replace(/\.0$/, "")}</div></div>
-        <div class="tile"><div class="t-label">Sessions</div><div class="t-value">${a.count}</div></div>
+        <div class="tile"><div class="t-label">ROI</div><div class="t-value ${plClass(a.roi)}">${a.roi === null ? "—" : fmtPct(a.roi)}</div></div>
       </div>
       <div class="card">
         <h2>Bankroll curve</h2>
@@ -1677,6 +1689,7 @@ $("sessForm").addEventListener("submit", async (e) => {
 
   const locSel = $("fLocation").value;
   let location = locSel === OTHER_LOC ? $("fLocationOther").value.trim() : locSel;
+  if (locSel === OTHER_LOC && !location) return toast("Name the spot you played");
   if (locSel === OTHER_LOC && location) {
     // typed a venue that already exists (any casing) → use the existing spelling
     const canon = locationChoices().find(l => l.toLowerCase() === location.toLowerCase());
@@ -1747,6 +1760,7 @@ function renderStats() {
       <td>${a.count}</td>
       <td>${a.hours.toFixed(1).replace(/\.0$/, "")}</td>
       <td><span class="${plClass(a.net)}">${fmtSigned(r2(a.net))}</span></td>
+      <td><span class="${plClass(a.roi)}">${a.roi === null ? "—" : fmtPct(a.roi)}</span></td>
       <td><span class="${plClass(a.hourly)}">${a.hours > 0 ? fmtSigned(r2(a.hourly)) : "—"}</span></td>
     </tr>`;
 
@@ -1755,7 +1769,7 @@ function renderStats() {
       <h2>Results by ${GROUP_COL[statsGroup].toLowerCase()}</h2>
       <div class="table-scroll">
         <table class="stats">
-          <thead><tr><th scope="col">${GROUP_COL[statsGroup]}</th><th scope="col">Sess</th><th scope="col">Hrs</th><th scope="col">Net</th><th scope="col">$/hr</th></tr></thead>
+          <thead><tr><th scope="col">${GROUP_COL[statsGroup]}</th><th scope="col">Sess</th><th scope="col">Hrs</th><th scope="col">Net</th><th scope="col">ROI</th><th scope="col">$/hr</th></tr></thead>
           <tbody>
             ${rows.map(r => row(r.k, r.a)).join("")}
             ${row("All", total, "total")}
@@ -1778,17 +1792,20 @@ function buildStatsDoc() {
     weeks[k].sessions++;
   }
   const a = aggregate(sessions);
-  return {
+  const doc = {
     nickname: profile.nickname,
     allTime: { net: r2(a.net), hours: r2(a.hours), sessions: a.count },
     weeks,
-    // shared with leaguemates — deliberately NO notes and no ids
-    sessions: sorted().slice(-150).map(s => ({
+  };
+  // opt-in only: full session detail (still deliberately NO notes and no ids)
+  if (profile.shareSessions) {
+    doc.sessions = sorted().slice(-150).map(s => ({
       date: s.date, location: s.location, gameType: s.gameType, game: s.game,
       stakes: s.stakes, durationMinutes: s.durationMinutes,
       buyIn: s.buyIn, cashOut: s.cashOut, hourlyFee: s.hourlyFee || 0,
-    })),
-  };
+    }));
+  }
+  return doc;
 }
 async function pushStats(force = false) {
   if (!ME || !profile || !profile.leagueIds.length) return;
@@ -1829,9 +1846,12 @@ function syncLeagueSubs() {
 }
 
 const genCode = () => {
-  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/1/I/L
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/1/I/L — 31 chars
   let c = "";
-  for (let i = 0; i < 6; i++) c += chars[Math.floor(Math.random() * chars.length)];
+  while (c.length < 6) {
+    const buf = crypto.getRandomValues(new Uint8Array(6 - c.length));
+    for (const b of buf) if (b < 248) c += chars[b % 31]; // 248 = 8×31; reject the rest to kill modulo bias
+  }
   return c;
 };
 
@@ -1927,9 +1947,11 @@ function playerCardHTML(p) {
   if (!p) return `<div class="card"><div class="empty">Player not found.</div></div>`;
   const a = p.allTime || { net: 0, hours: 0, sessions: 0 };
   const list = (p.sessions || []).slice().reverse();
+  const capNote = list.length && list.length < a.sessions
+    ? `<p class="lb-note">Showing the ${list.length} most recent of ${a.sessions} sessions.</p>` : "";
   let listHTML;
   if (!list.length) {
-    listHTML = `<div class="empty">No shared sessions yet — they'll appear once ${esc(p.nickname || "this player")} opens the app.</div>`;
+    listHTML = `<div class="empty">No shared sessions — ${esc(p.nickname || "this player")} hasn't turned on session sharing. Only their nickname and totals are shared.</div>`;
   } else {
     let html = "", curMonth = "";
     for (const s of list) {
@@ -1969,6 +1991,7 @@ function playerCardHTML(p) {
         <div class="pl-net ${plClass(a.net)}">${fmtSigned(r2(a.net))} all-time</div>
       </div>
       <div class="pl-sub">${a.sessions} session${a.sessions === 1 ? "" : "s"} · ${(a.hours || 0).toFixed(1).replace(/\.0$/, "")} hrs · ${a.hours > 0 ? fmtSigned(r2(a.net / a.hours)) + "/hr" : "—"}</div>
+      ${capNote}
       ${listHTML}
     </div>`;
 }
@@ -2156,6 +2179,20 @@ $("nickSaveBtn").addEventListener("click", async () => {
   await pushStats(true);
   toast("Nickname updated");
 });
+function setShareToggle(on) {
+  $("shareOn").setAttribute("aria-pressed", String(on));
+  $("shareOff").setAttribute("aria-pressed", String(!on));
+}
+async function setShareSessions(on) {
+  if (!profile || profile.shareSessions === on) return;
+  profile.shareSessions = on;
+  setShareToggle(on);
+  await backend.saveProfile(ME.uid, { shareSessions: on });
+  await pushStats(true);
+  toast(on ? "Sharing full session detail" : "Sharing totals only");
+}
+$("shareOn").addEventListener("click", () => setShareSessions(true));
+$("shareOff").addEventListener("click", () => setShareSessions(false));
 $("signOutBtn").addEventListener("click", () => {
   modal("Sign out?", "Your data stays in your account — sign back in anytime.", [
     { label: "Sign out", kind: "btn-danger", onClick: () => backend.signOutUser() },
@@ -2171,6 +2208,7 @@ const csvField = (v) => {
   const s = String(v ?? "");
   return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 };
+const fingerprint = (s) => [s.date, s.durationMinutes, s.buyIn, s.cashOut, s.location || "", s.stakes || ""].join("|");
 function toCSV() {
   const lines = [CSV_HEADERS.join(",")];
   for (const s of sorted()) {
@@ -2233,6 +2271,8 @@ $("importFile").addEventListener("change", async (e) => {
   if (idx.date === -1 || idx.buy_in === -1 || idx.cash_out === -1 || idx.duration_minutes === -1) {
     return toast("Missing columns — export a CSV from this app to see the format");
   }
+  const seen = new Set(sessions.map(fingerprint)); // existing sessions + rows already taken this file
+  let skippedInvalid = 0, skippedDup = 0;
   const parsed = [];
   for (let r = 1; r < rows.length; r++) {
     const g = (k) => idx[k] >= 0 ? (rows[r][idx[k]] ?? "").trim() : "";
@@ -2241,8 +2281,8 @@ $("importFile").addEventListener("change", async (e) => {
     const buyIn = parseFloat(g("buy_in"));
     const cashOut = parseFloat(g("cash_out"));
     const fee = parseFloat(g("hourly_fee"));
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(dur) || dur <= 0 || !Number.isFinite(buyIn) || !Number.isFinite(cashOut)) continue;
-    parsed.push({
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(dur) || dur <= 0 || !Number.isFinite(buyIn) || !Number.isFinite(cashOut)) { skippedInvalid++; continue; }
+    const rec = {
       id: uuid(),
       createdAt: Date.now() + r,
       date,
@@ -2254,16 +2294,24 @@ $("importFile").addEventListener("change", async (e) => {
       buyIn, cashOut,
       hourlyFee: Number.isFinite(fee) && fee > 0 ? fee : 0,
       notes: g("notes"),
-    });
+    };
+    const fp = fingerprint(rec);
+    if (seen.has(fp)) { skippedDup++; continue; }
+    seen.add(fp);
+    parsed.push(rec);
   }
-  if (!parsed.length) return toast("No valid sessions found in that file");
+  const skipBits = [];
+  if (skippedDup) skipBits.push(`${skippedDup} duplicate${skippedDup === 1 ? "" : "s"}`);
+  if (skippedInvalid) skipBits.push(`${skippedInvalid} invalid`);
+  const skipMsg = skipBits.length ? ` Skipped ${skipBits.join(" and ")}.` : "";
+  if (!parsed.length) return toast(skipBits.length ? `Nothing to import.${skipMsg}` : "No valid sessions found in that file");
 
   const apply = async () => {
     for (const s of parsed) await backend.putSession(ME.uid, s);
-    toast(`Imported ${parsed.length} session${parsed.length === 1 ? "" : "s"}`);
+    toast(`Imported ${parsed.length} session${parsed.length === 1 ? "" : "s"}.${skipMsg}`);
   };
   if (sessions.length) {
-    modal(`Import ${parsed.length} sessions?`, `They'll be added alongside the ${sessions.length} you already have.`, [
+    modal(`Import ${parsed.length} session${parsed.length === 1 ? "" : "s"}?`, `They'll be added alongside the ${sessions.length} you already have.${skipMsg}`, [
       { label: "Import", kind: "btn-primary", onClick: apply },
       { label: "Cancel", kind: "btn-ghost" },
     ]);

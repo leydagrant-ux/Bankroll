@@ -17,15 +17,23 @@ service cloud.firestore {
       allow get: if request.auth != null;
       allow create: if request.auth != null
                     && request.resource.data.ownerUid == request.auth.uid;
-      // Owner can edit anything; anyone signed in may only touch memberUids (join/leave).
+      // Owner can edit anything. A non-owner may only add or remove their OWN uid
+      // from memberUids (join/leave) — nothing else about the doc may change, and
+      // they can't touch anyone else's membership or wipe the list.
       allow update: if request.auth != null && (
         request.auth.uid == resource.data.ownerUid ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids'])
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids']) &&
+          request.resource.data.memberUids.toSet().difference(resource.data.memberUids.toSet()).hasOnly([request.auth.uid]) &&
+          resource.data.memberUids.toSet().difference(request.resource.data.memberUids.toSet()).hasOnly([request.auth.uid])
+        )
       );
       allow delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
 
-      // Leaderboard stats: everyone signed-in (with the code) can read;
-      // each player can only write their own row.
+      // Leaderboard stats: any signed-in user can read a row (and read implies
+      // list). The rules can't check that a caller knows the code, so this read
+      // access rests entirely on the parent code being unguessable and unlistable,
+      // not on rule enforcement. Each player can only write their own row.
       match /stats/{uid} {
         allow read: if request.auth != null;
         allow write: if request.auth != null && request.auth.uid == uid;
