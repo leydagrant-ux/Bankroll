@@ -283,7 +283,7 @@
   .hero .pill.win { background: rgba(142, 240, 181, 0.16); color: var(--felt-win); }
   .hero .pill.loss { background: rgba(255, 168, 168, 0.16); color: var(--felt-loss); }
 
-  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .tile {
     background: var(--surface);
     border: 1px solid var(--ring);
@@ -295,6 +295,18 @@
   .tile .t-value { font-size: 19px; font-weight: 700; margin-top: 4px; letter-spacing: -0.01em; }
   .tile .t-value.win { color: var(--win); }
   .tile .t-value.loss { color: var(--loss); }
+  .bb-skip {
+    background: none;
+    border: 0;
+    margin-top: -6px;
+    padding: 4px 2px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--felt-muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
 
   .chart-wrap { position: relative; }
   .chart-wrap svg { display: block; width: 100%; height: auto; }
@@ -718,10 +730,13 @@
     padding: 20px 18px calc(18px + env(safe-area-inset-bottom, 0px));
     width: 100%;
     max-width: 420px;
+    max-height: 82vh;
+    overflow-y: auto;
     box-shadow: 0 -8px 40px rgba(0,0,0,0.3);
   }
   .modal h3 { margin: 0 0 8px; font-size: 17px; }
-  .modal p { margin: 0 0 16px; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  /* pre-line so a body can list one item per line; every other modal body is a single line */
+  .modal p { margin: 0 0 16px; font-size: 14px; color: var(--ink-2); line-height: 1.5; white-space: pre-line; }
   .modal .btn + .btn { margin-top: 8px; }
 
   .toast {
@@ -1001,6 +1016,7 @@ const fmtMoney = (n) => {
 };
 const fmtSigned = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + fmtMoney(Math.abs(n));
 const fmtPct = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + (Math.abs(n) * 100).toFixed(1).replace(/\.0$/, "") + "%";
+const fmtBB = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n).toFixed(1);
 const plClass = (n) => n > 0 ? "win" : n < 0 ? "loss" : "";
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -1022,6 +1038,38 @@ const feeOf = (s) => (s.hourlyFee || 0) * (s.durationMinutes / 60);
 const profitOf = (s) => s.cashOut - s.buyIn - feeOf(s);
 const hoursOf = (s) => s.durationMinutes / 60;
 const stakesLabel = (s) => s.gameType === "tournament" ? `${s.stakes} MTT` : s.stakes;
+
+/* ---------- big blind, read out of the free-text stakes string ---------- */
+// A wrong blind quietly skews BB/hr for every session it touches, so each branch
+// below returns null rather than accept a number it can't stand behind.
+const BB_SANITY = { minRatio: 1, maxRatio: 5, minBB: 0.01, maxBB: 1000, minStacks: 5, maxStacks: 2000 };
+const GAME_LABEL = /\b(?:no[\s-]?limit|pot[\s-]?limit|nlhe|plo\d*|nl|pl|fl|lhe|limit|hold\s?'?em|holdem|omaha|stud|razz|mixed|max|handed|deep|short|ante|straddle|cash|mtt)\b/g;
+function bigBlindOf(s) {
+  if (s.gameType === "tournament") return null;  // tournament stakes is a buy-in level, not a blind
+  const raw = (s.stakes || "").trim();
+  if (!raw || raw === "?") return null;          // "?" is what the form stores for a blank stakes field
+  const t = raw.toLowerCase()
+    .replace(/[$,]/g, "")
+    .replace(/(\d*\.?\d+)[c¢]/g, (_, n) => n / 100)   // 25c and 25¢ both mean 0.25
+    .replace(/\s*([/-])\s*/g, "$1")                   // "1 / 2" → "1/2"
+    .replace(GAME_LABEL, " ");                        // drop game names so "plo5 2/5" can't read as 5/2
+  const m = t.match(/(\d*\.?\d+)[/-](\d*\.?\d+)/);
+  if (!m) return null;
+  // three-number stakes (1/2/5) are a mandatory straddle or bring-in — the second number is still the posted big blind
+  const sb = Number(m[1]), bb = Number(m[2]);
+  if (!Number.isFinite(bb) || bb <= 0) return null;
+  if (sb > bb) return null;                      // transposed or malformed; sb === bb is real (2/2 and 5/5 PLO)
+  const ratio = bb / sb;
+  if (!(ratio >= BB_SANITY.minRatio && ratio <= BB_SANITY.maxRatio)) return null;
+  if (bb < BB_SANITY.minBB || bb > BB_SANITY.maxBB) return null;
+  if (s.buyIn > 0) {                             // a 0 buy-in clears form validation — skip this check, don't fail on it
+    const stacks = s.buyIn / bb;
+    if (stacks < BB_SANITY.minStacks || stacks > BB_SANITY.maxStacks) return null;
+  }
+  return bb;
+}
+const bbUnreadable = (s) => s.gameType !== "tournament" && bigBlindOf(s) === null;
+
 function aggregate(list) {
   const net = list.reduce((t, s) => t + profitOf(s), 0);
   const hours = list.reduce((t, s) => t + hoursOf(s), 0);
@@ -1029,7 +1077,13 @@ function aggregate(list) {
   const wins = list.filter(s => profitOf(s) > 0).length;
   const losses = list.filter(s => profitOf(s) < 0).length;
   const push = list.length - wins - losses;
-  return { net, hours, buyIn, wins, losses, push, count: list.length, hourly: hours > 0 ? net / hours : 0, roi: buyIn > 0 ? net / buyIn : null };
+  // BB/hr runs on its own subset: only sessions whose stakes parsed, and only their hours
+  const bbList = list.filter(s => bigBlindOf(s) !== null);
+  const bbWon = bbList.reduce((t, s) => t + profitOf(s) / bigBlindOf(s), 0);
+  const bbHours = bbList.reduce((t, s) => t + hoursOf(s), 0);
+  const bbSkipped = list.filter(bbUnreadable).length;
+  return { net, hours, buyIn, wins, losses, push, count: list.length, hourly: hours > 0 ? net / hours : 0, roi: buyIn > 0 ? net / buyIn : null,
+    bbWon, bbHours, bbPerHour: bbHours > 0 ? bbWon / bbHours : null, bbSkipped };
 }
 
 /* ---------- ISO week (Monday-based) ---------- */
@@ -1400,13 +1454,25 @@ function renderDash() {
         <div class="tile"><div class="t-label">Hourly</div><div class="t-value ${plClass(a.hourly)}">${fmtSigned(r2(a.hourly))}</div></div>
         <div class="tile"><div class="t-label">Hours</div><div class="t-value">${a.hours.toFixed(1).replace(/\.0$/, "")}</div></div>
         <div class="tile"><div class="t-label">ROI</div><div class="t-value ${plClass(a.roi)}">${a.roi === null ? "—" : fmtPct(a.roi)}</div></div>
+        <div class="tile"><div class="t-label">BB/hr</div><div class="t-value ${plClass(a.bbPerHour)}">${a.bbPerHour === null ? "—" : fmtBB(a.bbPerHour)}</div></div>
       </div>
+      ${a.bbSkipped > 0 ? `<button type="button" class="bb-skip" id="bbSkipBtn">${a.bbSkipped} cash session${a.bbSkipped === 1 ? "" : "s"} left out of BB/hr — stakes couldn't be read</button>` : ""}
       <div class="card">
         <h2>Bankroll curve</h2>
         <div class="chart-wrap" id="chartWrap"></div>
       </div>
     </div>`;
   drawChart($("chartWrap"));
+  $("bbSkipBtn")?.addEventListener("click", showBBSkipped);
+}
+
+// the skipped rows are fixable — show which ones so they can be corrected on the form
+function showBBSkipped() {
+  const skipped = sorted().reverse().filter(bbUnreadable);
+  const lines = skipped.map(s => `${fmtDate(s.date)} · ${s.location || "—"} · "${s.stakes}"`).join("\n");
+  modal(`${skipped.length} session${skipped.length === 1 ? "" : "s"} left out of BB/hr`,
+    `BB/hr couldn't read blinds off these stakes, so they don't count toward it. Edit one to a format like 1/2 and it joins the stat.\n\n${lines}`,
+    [{ label: "Close", kind: "btn-ghost" }]);
 }
 
 function niceTicks(min, max, target) {
