@@ -42,6 +42,23 @@
     /* tab bar sits on dark felt in both themes */
     --tab-idle: rgba(247, 241, 221, 0.6);
     --tab-active: #e6c96f;
+    /* league curves — categorical series, in the order they're handed out.
+       Order is the colorblind-safety mechanism, not taste: accent→blue→orange→aqua→violet→magenta
+       clears every adjacent-pair gate in both themes. Don't reshuffle without re-checking. */
+    --s1: #2a78d6;
+    --s2: #eb6834;
+    --s3: #1baf7a;
+    --s4: #4a3aa7;
+    --s5: #e87ba4;
+    /* play calendar — diverging ramp, losses ← nothing → wins */
+    --cal-0: #ebe9e0;
+    --cal-even: #d6d3c8;
+    --cal-w1: #a9d6a9;
+    --cal-w2: #4da34d;
+    --cal-w3: #006300;
+    --cal-l1: #f2bcbc;
+    --cal-l2: #e07d7d;
+    --cal-l3: #b82c2c;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -64,6 +81,19 @@
       --ring: rgba(255, 255, 255, 0.10);
       --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
       --tabbar: rgba(20, 5, 7, 0.92);
+      --s1: #3987e5;
+      --s2: #d95926;
+      --s3: #199e70;
+      --s4: #9085e9;
+      --s5: #d55181;
+      --cal-0: #2c2224;
+      --cal-even: #3f3236;
+      --cal-w1: #17401d;
+      --cal-w2: #1c7a26;
+      --cal-w3: #35c23e;
+      --cal-l1: #4a1c1e;
+      --cal-l2: #9c3232;
+      --cal-l3: #e2605f;
     }
   }
   :root[data-theme="light"] {
@@ -86,6 +116,19 @@
     --ring: rgba(22, 21, 15, 0.10);
     --shadow: 0 1px 3px rgba(22, 21, 15, 0.06), 0 4px 16px rgba(22, 21, 15, 0.04);
     --tabbar: rgba(31, 8, 10, 0.9);
+    --s1: #2a78d6;
+    --s2: #eb6834;
+    --s3: #1baf7a;
+    --s4: #4a3aa7;
+    --s5: #e87ba4;
+    --cal-0: #ebe9e0;
+    --cal-even: #d6d3c8;
+    --cal-w1: #a9d6a9;
+    --cal-w2: #4da34d;
+    --cal-w3: #006300;
+    --cal-l1: #f2bcbc;
+    --cal-l2: #e07d7d;
+    --cal-l3: #b82c2c;
   }
   :root[data-theme="dark"] {
     --page: #260a0d;
@@ -107,6 +150,19 @@
     --ring: rgba(255, 255, 255, 0.10);
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
     --tabbar: rgba(20, 5, 7, 0.92);
+    --s1: #3987e5;
+    --s2: #d95926;
+    --s3: #199e70;
+    --s4: #9085e9;
+    --s5: #d55181;
+    --cal-0: #2c2224;
+    --cal-even: #3f3236;
+    --cal-w1: #17401d;
+    --cal-w2: #1c7a26;
+    --cal-w3: #35c23e;
+    --cal-l1: #4a1c1e;
+    --cal-l2: #9c3232;
+    --cal-l3: #e2605f;
   }
 
   * { box-sizing: border-box; }
@@ -268,6 +324,8 @@
   }
   .hero .amount.win { color: var(--felt-win); }
   .hero .amount.loss { color: var(--felt-loss); }
+  /* position: relative keeps these above the big watermark spade, same as .record */
+  .hero .range { position: relative; font-size: 12.5px; color: var(--felt-muted); margin: -2px 0 10px; line-height: 1.45; }
   .record { display: flex; gap: 8px; flex-wrap: wrap; position: relative; }
   .pill {
     font-size: 12.5px;
@@ -325,6 +383,83 @@
     z-index: 5;
   }
   .chart-tip .tt-val { font-weight: 700; }
+  /* The multi-series tip is a stack of rows — too big to sit on the crosshair, so it
+     hangs beside it and flips to the other side rather than run off the card. */
+  .chart-tip.multi { transform: translate(9px, 0); }
+  .chart-tip.multi.flip { transform: translate(-100%, 0) translateX(-9px); }
+  .chart-tip .tt-head { font-weight: 700; margin-bottom: 4px; }
+  .chart-tip .tt-row { display: flex; align-items: center; gap: 7px; }
+  .chart-tip .tt-row i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .chart-tip .tt-row b { margin-left: auto; padding-left: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* ---------- play calendar (a year of days, one square each) ---------- */
+  .cal-sub { font-size: 12.5px; color: var(--ink-2); margin: -4px 0 12px; line-height: 1.5; }
+  .cal-row { display: flex; gap: 6px; align-items: flex-start; }
+  .cal-dow {
+    flex: none;
+    display: grid;
+    grid-template-rows: repeat(7, 11px);
+    gap: 3px;
+    padding-top: 15px; /* clears the month labels so rows line up with the grid */
+    font-size: 9px;
+    font-weight: 650;
+    color: var(--muted);
+  }
+  .cal-dow span { line-height: 11px; }
+  /* padding-bottom keeps a scrollbar off the last row of squares */
+  .cal-wrap { flex: 1; min-width: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
+  .cal-months, .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--weeks), 11px);
+    gap: 3px;
+    width: max-content;
+  }
+  .cal-months { height: 15px; font-size: 9.5px; font-weight: 650; color: var(--muted); }
+  .cal-months span { white-space: nowrap; }
+  .cal-grid { grid-auto-flow: column; grid-template-rows: repeat(7, 11px); }
+  .cal-cell {
+    width: 11px; height: 11px;
+    border: 0; padding: 0;
+    border-radius: 2.5px;
+    background: var(--cal-0);
+  }
+  .cal-cell.void { background: transparent; }  /* days after today: hold the grid shape, show nothing */
+  .cal-cell.even { background: var(--cal-even); }
+  .cal-cell.w1 { background: var(--cal-w1); }
+  .cal-cell.w2 { background: var(--cal-w2); }
+  .cal-cell.w3 { background: var(--cal-w3); }
+  .cal-cell.l1 { background: var(--cal-l1); }
+  .cal-cell.l2 { background: var(--cal-l2); }
+  .cal-cell.l3 { background: var(--cal-l3); }
+  .cal-legend {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .cal-legend i { width: 10px; height: 10px; border-radius: 2.5px; flex: none; }
+  .cal-legend .gap { width: 4px; }
+
+  /* ---------- league bankroll curves ---------- */
+  .curve-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .curve-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 5px 11px;
+    font-size: 12px;
+    font-weight: 650;
+    color: var(--ink-2);
+  }
+  .curve-chip i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .curve-chip b { font-weight: 750; font-variant-numeric: tabular-nums; }
+  .curve-chip b.win { color: var(--win); }
+  .curve-chip b.loss { color: var(--loss); }
+  .curve-chip.me { border-color: var(--accent); }
 
   .empty {
     text-align: center;
@@ -945,7 +1080,7 @@
               <button type="button" id="shareOff" aria-pressed="true">Totals only</button>
               <button type="button" id="shareOn" aria-pressed="false">Full sessions</button>
             </div>
-            <p class="backup-note" style="margin-top:8px">Your nickname and weekly &amp; all-time totals are always shared. <strong>Full sessions</strong> also shares each session's date, location, stakes, buy-in, cash-out, and length. Your notes are never shared.</p>
+            <p class="backup-note" style="margin-top:8px"><strong>Full sessions</strong> is on by default — it's what puts your curve on the league chart. It shares each session's date, location, stakes, buy-in, cash-out, and length; your nickname and weekly &amp; all-time totals are shared either way. Switch to <strong>Totals only</strong> any time. Your notes are never shared.</p>
           </div>
           <p class="backup-note" id="acctEmail" style="margin-top:0"></p>
           <button type="button" class="btn btn-danger" id="signOutBtn">Sign out</button>
@@ -1266,8 +1401,26 @@ let unsubSessions = null;
 let lastPushedStats = "";
 let pendingNickname = "";
 
-const sorted = () => [...sessions].sort((a, b) =>
-  a.date === b.date ? (a.createdAt || 0) - (b.createdAt || 0) : (a.date < b.date ? -1 : 1));
+const byDate = (a, b) =>
+  a.date === b.date ? (a.createdAt || 0) - (b.createdAt || 0) : (a.date < b.date ? -1 : 1);
+const sorted = () => [...sessions].sort(byDate);
+
+// cumulative profit after each session, oldest first — the shape behind every curve in the app.
+// Takes a plain list so it works on a leaguemate's shared sessions too, not just our own.
+function curvePoints(list) {
+  let cum = 0;
+  return [...list].sort(byDate).map(s => {
+    const profit = profitOf(s);
+    cum += profit;
+    return { date: s.date, cum, profit, stakes: stakesLabel(s) };
+  });
+}
+// first tracked session → most recent, and the calendar days that span
+function spanOf(list) {
+  const dates = list.map(s => s.date).sort();
+  const first = dates[0], last = dates[dates.length - 1];
+  return { first, last, days: Math.round((parseDate(last) - parseDate(first)) / 86400000) + 1 };
+}
 
 /* ---------- toast & modal ---------- */
 let toastTimer;
@@ -1359,6 +1512,11 @@ $("forgotBtn").addEventListener("click", async () => {
    ===================================================================== */
 if (backend.isMock) $("demoNote").hidden = false;
 
+// Full session sharing is the out-of-the-box setting — the league views (curves,
+// player detail) are the whole point of a league, and they're empty without it.
+// An explicit `false` on the profile is someone opting out, and is left alone.
+const SHARE_DEFAULT = true;
+
 backend.onAuth(async (user) => {
   ME = user;
   $("splash").hidden = true;
@@ -1370,11 +1528,15 @@ backend.onAuth(async (user) => {
   }
   profile = await backend.getProfile(user.uid);
   if (!profile) {
-    profile = { nickname: pendingNickname || user.email.split("@")[0], leagueIds: [], shareSessions: false };
+    profile = { nickname: pendingNickname || user.email.split("@")[0], leagueIds: [], shareSessions: SHARE_DEFAULT };
     await backend.saveProfile(user.uid, profile);
   }
   if (!Array.isArray(profile.leagueIds)) profile.leagueIds = [];
-  if (typeof profile.shareSessions !== "boolean") profile.shareSessions = false;
+  if (typeof profile.shareSessions !== "boolean") {
+    // account predates the setting — write the default down so it stops being implicit
+    profile.shareSessions = SHARE_DEFAULT;
+    await backend.saveProfile(user.uid, { shareSessions: SHARE_DEFAULT });
+  }
   $("authView").hidden = true;
   $("appView").hidden = false;
   $("nickInput").value = profile.nickname;
@@ -1438,11 +1600,16 @@ function renderDash() {
   }
   const a = aggregate(sessions);
   const totalFees = sessions.reduce((t, s) => t + feeOf(s), 0);
+  const span = spanOf(sessions);
+  const range = span.first === span.last
+    ? `${a.count} session${a.count === 1 ? "" : "s"} · ${fmtDate(span.first)}`
+    : `${a.count} sessions · ${fmtDate(span.first)} – ${fmtDate(span.last)} · ${span.days} days`;
   el.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="card hero">
         <div class="label">All-time result</div>
         <div class="amount ${plClass(a.net)}">${fmtSigned(r2(a.net))}</div>
+        <div class="range">${range}</div>
         <div class="record">
           <span class="pill win">${a.wins} winning</span>
           <span class="pill loss">${a.losses} losing</span>
@@ -1461,9 +1628,95 @@ function renderDash() {
         <h2>Bankroll curve</h2>
         <div class="chart-wrap" id="chartWrap"></div>
       </div>
+      <div class="card">
+        <h2>When you played</h2>
+        <div id="calContent"></div>
+      </div>
     </div>`;
-  drawChart($("chartWrap"));
+  drawChart($("chartWrap"), curvePoints(sessions));
+  drawCalendar($("calContent"));
   $("bbSkipBtn")?.addEventListener("click", showBBSkipped);
+}
+
+/* ---------- play calendar: one square per day, colored by that day's result ---------- */
+const CAL_WEEKS = 52;
+const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const mondayOf = (d) => { const m = new Date(d); m.setDate(m.getDate() - ((m.getDay() + 6) % 7)); return m; };
+
+function drawCalendar(wrap) {
+  // one bucket per calendar day — two sessions on the same day read as that day's net
+  const days = new Map();
+  for (const s of sessions) {
+    const d = days.get(s.date) || { net: 0, count: 0 };
+    d.net += profitOf(s);
+    d.count++;
+    days.set(s.date, d);
+  }
+  const today = todayISO();
+  const span = spanOf(sessions);
+  // grid ends on the current week and reaches back to the first session, capped at a year
+  const end = mondayOf(parseDate(span.last > today ? span.last : today));
+  const start = new Date(end);
+  start.setDate(start.getDate() - (CAL_WEEKS - 1) * 7);
+  const firstMon = mondayOf(parseDate(span.first));
+  if (firstMon > start) start.setTime(firstMon.getTime());
+  const weeks = Math.round((end - start) / (7 * 86400000)) + 1;
+
+  // shade by size relative to the biggest day either way, so the scale fits whoever's playing
+  const scale = Math.max(1, ...[...days.values()].map(v => Math.abs(v.net)));
+  const level = (net) => {
+    if (net === 0) return "even";
+    const r = Math.abs(net) / scale;
+    return (net > 0 ? "w" : "l") + (r < 0.2 ? 1 : r < 0.55 ? 2 : 3);
+  };
+
+  let cells = "", months = "", curMonth = -1, played = 0, up = 0, down = 0;
+  const cur = new Date(start);
+  for (let w = 0; w < weeks; w++) {
+    if (cur.getMonth() !== curMonth) {
+      curMonth = cur.getMonth();
+      months += `<span style="grid-column:${w + 1};grid-row:1">${cur.toLocaleDateString("en-US", { month: "short" })}</span>`;
+    }
+    for (let d = 0; d < 7; d++) {
+      const iso = isoOf(cur);
+      const rec = days.get(iso);
+      if (iso > today) {
+        cells += `<div class="cal-cell void"></div>`;      // rest of this week hasn't happened yet
+      } else if (rec) {
+        played++;
+        if (rec.net > 0) up++; else if (rec.net < 0) down++;
+        const label = `${fmtDate(iso)} · ${fmtSigned(r2(rec.net))} · ${rec.count} session${rec.count === 1 ? "" : "s"}`;
+        cells += `<button type="button" class="cal-cell ${level(rec.net)}" data-label="${esc(label)}" title="${esc(label)}" aria-label="${esc(label)}"></button>`;
+      } else {
+        cells += `<div class="cal-cell" aria-hidden="true"></div>`;
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+  }
+
+  wrap.innerHTML = `
+    <p class="cal-sub">${played} day${played === 1 ? "" : "s"} at the tables · ${up} up · ${down} down${weeks >= CAL_WEEKS ? " · last 12 months" : ""}</p>
+    <div class="cal-row">
+      <div class="cal-dow"><span style="grid-row:1">Mon</span><span style="grid-row:3">Wed</span><span style="grid-row:5">Fri</span></div>
+      <div class="cal-wrap">
+        <div style="--weeks:${weeks}">
+          <div class="cal-months">${months}</div>
+          <div class="cal-grid">${cells}</div>
+        </div>
+      </div>
+    </div>
+    <div class="cal-legend">
+      <span>Lost</span>
+      <i style="background:var(--cal-l3)"></i><i style="background:var(--cal-l2)"></i><i style="background:var(--cal-l1)"></i>
+      <span class="gap"></span><i style="background:var(--cal-0)"></i><span>didn't play</span><span class="gap"></span>
+      <i style="background:var(--cal-w1)"></i><i style="background:var(--cal-w2)"></i><i style="background:var(--cal-w3)"></i>
+      <span>Won</span>
+    </div>`;
+
+  const scroller = wrap.querySelector(".cal-wrap");
+  scroller.scrollLeft = scroller.scrollWidth;  // open on the most recent week
+  wrap.querySelectorAll(".cal-cell[data-label]").forEach(c =>
+    c.addEventListener("click", () => toast(c.dataset.label)));
 }
 
 // the skipped rows are fixable — show which ones so they can be corrected on the form
@@ -1493,11 +1746,7 @@ const fmtAxis = (n) => {
   return (n < 0 ? "−$" : "$") + s;
 };
 
-function drawChart(wrap) {
-  const chron = sorted();
-  let cum = 0;
-  const pts = chron.map(s => { cum += profitOf(s); return { date: s.date, cum, profit: profitOf(s), stakes: stakesLabel(s) }; });
-
+function drawChart(wrap, pts) {
   const W = 360, H = 210, padL = 44, padR = 14, padT = 12, padB = 26;
   const iw = W - padL - padR, ih = H - padT - padB;
   let lo = Math.min(0, ...pts.map(p => p.cum));
@@ -1562,6 +1811,110 @@ function drawChart(wrap) {
   }
   function onLeave() {
     xh.setAttribute("opacity", "0"); hdot.setAttribute("opacity", "0"); tip.style.display = "none";
+  }
+  hit.addEventListener("pointermove", onMove);
+  hit.addEventListener("pointerdown", onMove);
+  hit.addEventListener("pointerleave", onLeave);
+}
+
+/* ---------- several curves at once (league comparison) ----------
+   Unlike the solo chart this runs on a real time axis: players have different
+   session counts, so lining them up by index would compare different weeks. */
+function drawCurves(wrap, series) {
+  const W = 360, H = 210, padL = 44, padR = 14, padT = 12, padB = 26;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  for (const s of series) s.t = s.pts.map(p => parseDate(p.date).getTime());
+
+  const allT = [...new Set(series.flatMap(s => s.t))].sort((a, b) => a - b);
+  let t0 = allT[0], t1 = allT[allT.length - 1];
+  if (t0 === t1) { t0 -= 86400000; t1 += 86400000; }
+  let lo = Math.min(0, ...series.flatMap(s => s.pts.map(p => p.cum)));
+  let hi = Math.max(0, ...series.flatMap(s => s.pts.map(p => p.cum)));
+  if (lo === hi) { lo -= 50; hi += 50; }
+  const ticks = niceTicks(lo, hi, 4);
+  lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
+  const x = (t) => padL + ((t - t0) / (t1 - t0)) * iw;
+  const y = (v) => padT + (1 - (v - lo) / (hi - lo)) * ih;
+
+  let grid = "", labels = "";
+  for (const t of ticks) {
+    grid += `<line x1="${padL}" x2="${W - padR}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)" stroke-width="1"/>`;
+    labels += `<text x="${padL - 7}" y="${y(t) + 3.5}" text-anchor="end" font-size="10" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${fmtAxis(t)}</text>`;
+  }
+  const zeroLine = (lo < 0 && hi > 0)
+    ? `<line x1="${padL}" x2="${W - padR}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3" opacity="0.7"/>` : "";
+
+  const fmtMs = (ms) => new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const xLabels = [[t0, "start"], [(t0 + t1) / 2, "middle"], [t1, "end"]]
+    .map(([t, anchor]) => `<text x="${x(t)}" y="${H - 8}" text-anchor="${anchor}" font-size="10" fill="var(--muted)">${esc(fmtMs(t))}</text>`)
+    .join("");
+
+  // our own line goes on last so it reads on top of the pile
+  const order = [...series].sort((a, b) => (a.me ? 1 : 0) - (b.me ? 1 : 0));
+  const paths = order.map(s => s.pts.length === 1
+    ? `<circle cx="${x(s.t[0]).toFixed(1)}" cy="${y(s.pts[0].cum).toFixed(1)}" r="3.5" fill="${s.color}" stroke="var(--surface)" stroke-width="1.5"/>`
+    : `<path d="${s.pts.map((p, i) => `${i ? "L" : "M"}${x(s.t[i]).toFixed(1)},${y(p.cum).toFixed(1)}`).join(" ")}"
+         fill="none" stroke="${s.color}" stroke-width="${s.me ? 2.6 : 1.8}" stroke-linejoin="round" stroke-linecap="round"/>`
+  ).join("");
+  const endDots = order.map(s => {
+    const last = s.pts[s.pts.length - 1];
+    return `<circle cx="${x(s.t[s.t.length - 1]).toFixed(1)}" cy="${y(last.cum).toFixed(1)}" r="${s.me ? 4 : 3.2}" fill="${s.color}" stroke="var(--surface)" stroke-width="1.5"/>`;
+  }).join("");
+
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Bankroll curves for ${series.length} player${series.length === 1 ? "" : "s"}">
+      ${grid}${zeroLine}${labels}${xLabels}
+      ${paths}${endDots}
+      <line id="cxh" x1="0" x2="0" y1="${padT}" y2="${padT + ih}" stroke="var(--muted)" stroke-width="1" opacity="0" pointer-events="none"/>
+      ${series.map(() => `<circle class="cdot" r="4" opacity="0" pointer-events="none"/>`).join("")}
+      <rect x="${padL}" y="${padT}" width="${iw}" height="${ih}" fill="transparent" id="chitbox"/>
+    </svg>
+    <div class="chart-tip multi" id="curveTip"></div>`;
+
+  const svg = wrap.querySelector("svg");
+  const hit = wrap.querySelector("#chitbox");
+  const xh = wrap.querySelector("#cxh");
+  const dots = [...wrap.querySelectorAll(".cdot")];
+  const tip = wrap.querySelector("#curveTip");
+
+  function onMove(ev) {
+    const r = svg.getBoundingClientRect();
+    const sx = (ev.clientX - r.left) * (W / r.width);
+    const t = t0 + Math.min(1, Math.max(0, (sx - padL) / iw)) * (t1 - t0);
+    let snap = allT[0], bd = Infinity;
+    for (const tt of allT) { const d = Math.abs(tt - t); if (d < bd) { bd = d; snap = tt; } }
+
+    const rows = [];
+    series.forEach((s, i) => {
+      let idx = -1;
+      for (let k = 0; k < s.t.length && s.t[k] <= snap; k++) idx = k;   // last session on or before this date
+      const dot = dots[i];
+      if (idx < 0) { dot.setAttribute("opacity", "0"); return; }        // hadn't started playing yet
+      rows.push({ name: s.name, color: s.color, cum: s.pts[idx].cum });
+      // only mark the players who actually played that day — anywhere else the dot
+      // would sit between sessions, where nobody has a real number
+      if (s.t[idx] === snap) {
+        dot.setAttribute("cx", x(snap));
+        dot.setAttribute("cy", y(s.pts[idx].cum));
+        dot.setAttribute("fill", s.color);
+        dot.setAttribute("stroke", "var(--surface)");
+        dot.setAttribute("stroke-width", "1.5");
+        dot.setAttribute("opacity", "1");
+      } else dot.setAttribute("opacity", "0");
+    });
+    xh.setAttribute("x1", x(snap)); xh.setAttribute("x2", x(snap)); xh.setAttribute("opacity", "0.5");
+    rows.sort((a, b) => b.cum - a.cum);
+    tip.style.display = "block";
+    tip.classList.toggle("flip", x(snap) > W / 2);
+    tip.style.left = (x(snap) / W * 100) + "%";
+    tip.style.top = (padT / H * 100) + "%";
+    tip.innerHTML = `<div class="tt-head">${esc(fmtMs(snap))}</div>` + rows.map(r =>
+      `<div class="tt-row"><i style="background:${r.color}"></i>${esc(r.name)}<b>${fmtSigned(r2(r.cum))}</b></div>`).join("");
+  }
+  function onLeave() {
+    xh.setAttribute("opacity", "0");
+    for (const d of dots) d.setAttribute("opacity", "0");
+    tip.style.display = "none";
   }
   hit.addEventListener("pointermove", onMove);
   hit.addEventListener("pointerdown", onMove);
@@ -2008,6 +2361,59 @@ function raceHTML(rows) {
   </div></div>`;
 }
 
+/* ---------- everyone's bankroll curve on one set of axes ---------- */
+const CURVE_COLORS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)"];
+
+function leagueCurves(stats) {
+  const rows = [];
+  for (const s of stats) {
+    // our own curve is built from local sessions, so it's here even with sharing off
+    const list = s.uid === ME.uid ? sessions : (Array.isArray(s.sessions) ? s.sessions : []);
+    if (!list.length) continue;
+    const pts = curvePoints(list);
+    rows.push({
+      uid: s.uid, me: s.uid === ME.uid,
+      name: s.uid === ME.uid ? "You" : (s.nickname || "?"),
+      pts, net: pts[pts.length - 1].cum,
+    });
+  }
+  // Color follows the player, never the standings — sorting by uid keeps everyone's
+  // line the same color as the leaderboard reshuffles. Past the palette we stop
+  // handing out hues and fold the rest into one muted "others" bucket.
+  const others = rows.filter(r => !r.me).sort((a, b) => (a.uid < b.uid ? -1 : 1));
+  others.forEach((r, i) => {
+    r.spare = i >= CURVE_COLORS.length;
+    r.color = r.spare ? "var(--muted)" : CURVE_COLORS[i];
+  });
+  const mine = rows.find(r => r.me);
+  if (mine) mine.color = "var(--accent)";
+  return mine ? [mine, ...others] : others;
+}
+
+function curvesCardHTML(series) {
+  if (!series.length) {
+    return `<div class="card">
+      <h2>Bankroll curves</h2>
+      <div class="empty">No curves to draw yet — they show up once someone in the league has logged a session.</div>
+    </div>`;
+  }
+  const named = series.filter(s => !s.spare);
+  const spares = series.length - named.length;
+  return `<div class="card">
+    <h2>Bankroll curves · all-time</h2>
+    <div class="chart-wrap" id="curveWrap"></div>
+    <div class="curve-legend">
+      ${named.map(s => `
+        <button type="button" class="curve-chip ${s.me ? "me" : ""}" data-uid="${esc(s.uid)}">
+          <i style="background:${s.color}"></i>${esc(s.name)}
+          <b class="${plClass(s.net)}">${fmtSigned(r2(s.net))}</b>
+        </button>`).join("")}
+      ${spares ? `<span class="curve-chip"><i style="background:var(--muted)"></i>${spares} more</span>` : ""}
+    </div>
+    <p class="lb-note">Drawn from shared sessions — a leaguemate joins the picture once their session sharing is on <strong>Full sessions</strong>. Tap a name for their session list.</p>
+  </div>`;
+}
+
 /* ---------- player detail (read-only) ---------- */
 function playerCardHTML(p) {
   if (!p) return `<div class="card"><div class="empty">Player not found.</div></div>`;
@@ -2058,6 +2464,7 @@ function playerCardHTML(p) {
       </div>
       <div class="pl-sub">${a.sessions} session${a.sessions === 1 ? "" : "s"} · ${(a.hours || 0).toFixed(1).replace(/\.0$/, "")} hrs · ${a.hours > 0 ? fmtSigned(r2(a.net / a.hours)) + "/hr" : "—"}</div>
       ${capNote}
+      ${list.length > 1 ? `<div class="chart-wrap" id="plChart" style="margin-bottom:16px"></div>` : ""}
       ${listHTML}
     </div>`;
 }
@@ -2093,8 +2500,10 @@ function renderLeague() {
   const wk = currentWeekKey();
 
   if (playerView) {
-    el.innerHTML = chips + playerCardHTML(stats.find(s => s.uid === playerView));
+    const p = stats.find(s => s.uid === playerView);
+    el.innerHTML = chips + playerCardHTML(p);
     bindChips(el);
+    if ($("plChart")) drawChart($("plChart"), curvePoints(p.sessions));
     $("backToBoard")?.addEventListener("click", () => { playerView = null; renderLeague(); });
     return;
   }
@@ -2155,6 +2564,8 @@ function renderLeague() {
         <button type="button" class="btn btn-felt" id="addLeagueBtn">Start another league</button>
       </div>`;
 
+  const series = leagueCurves(stats);
+
   el.innerHTML = chips + `
     <div class="seg stat-seg" role="group" aria-label="Leaderboard range">
       <button type="button" data-lb="week" aria-pressed="${lbMode === "week"}">This week</button>
@@ -2172,8 +2583,9 @@ function renderLeague() {
         <span></span>
         <button type="button" class="leave" id="leaveLeagueBtn">Leave league</button>
       </div>
-    </div>` + addRow;
+    </div>` + curvesCardHTML(series) + addRow;
 
+  if (series.length) drawCurves($("curveWrap"), series);
   bindChips(el);
   bindLeagueForms(el);
   el.querySelectorAll("[data-uid]").forEach(x => x.addEventListener("click", () => { playerView = x.dataset.uid; renderLeague(); }));
