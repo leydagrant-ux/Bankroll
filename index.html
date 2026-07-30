@@ -654,6 +654,55 @@
   }
   .rank.r1 { background: var(--accent); color: var(--accent-ink); }
 
+  /* ---------- profile photo ---------- */
+  .avatar {
+    flex: none;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--surface-2);
+    border: 1px solid var(--ring);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 750;
+    line-height: 1;
+    color: var(--accent-deep);
+    overflow: hidden;
+    vertical-align: middle;
+  }
+  .photo-row { display: flex; gap: 14px; align-items: flex-start; }
+  .photo-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .photo-btns { display: flex; gap: 8px; }
+  .photo-btns .btn { padding: 10px 12px; min-height: 42px; font-size: 14px; }
+
+  /* ---------- account facts (most played) ---------- */
+  .acct-facts { display: flex; flex-direction: column; gap: 8px; }
+  .acct-facts div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .acct-facts .k { font-size: 12.5px; font-weight: 650; color: var(--ink-2); }
+  .acct-facts .v { font-size: 13.5px; font-weight: 700; text-align: right; }
+  .acct-facts .v small { display: block; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+
+  /* deliberately understated — a destructive action shouldn't look like a button to press */
+  .danger-zone { border-top: 1px solid var(--hairline); padding-top: 14px; margin-top: 2px; }
+  .danger-link {
+    background: none;
+    border: 0;
+    padding: 2px;
+    font-size: 13.5px;
+    font-weight: 650;
+    color: var(--loss);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
   .backup-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .backup-note { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-top: 10px; }
 
@@ -902,6 +951,15 @@
 </head>
 <body>
 
+<script>
+  /* Runs before the app module so the saved theme is on the html element before
+     first paint — otherwise a light-mode user on a dark phone gets a dark flash. */
+  try {
+    var t = localStorage.getItem("bankroll.theme");
+    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+  } catch (e) { /* private mode — fall back to the OS setting */ }
+</script>
+
 <!-- ============ SPLASH ============ -->
 <div class="splash" id="splash">
   <img src="icons/chip-180.png" alt="">
@@ -1070,11 +1128,39 @@
       <div class="card">
         <h2>Account</h2>
         <div class="form-grid">
+          <div class="photo-row">
+            <div id="photoPreview"></div>
+            <div class="photo-side">
+              <div class="photo-btns">
+                <button type="button" class="btn btn-ghost" id="photoBtn">Add photo</button>
+                <button type="button" class="btn btn-ghost" id="photoRemoveBtn" hidden>Remove</button>
+              </div>
+              <p class="backup-note" style="margin-top:0">Shown to leaguemates beside your nickname. Cropped square and shrunk on your phone before it's saved.</p>
+            </div>
+          </div>
+          <input type="file" id="photoFile" accept="image/*" hidden>
           <div class="field">
             <label for="nickInput">Nickname <span style="font-weight:400;color:var(--muted)">(shown on leaderboards)</span></label>
             <input type="text" id="nickInput" maxlength="20" autocomplete="off">
           </div>
           <button type="button" class="btn btn-ghost" id="nickSaveBtn">Save nickname</button>
+          <div class="acct-facts" id="acctFacts"></div>
+          <div class="field">
+            <label id="themeLabel">Appearance</label>
+            <div class="seg" role="group" aria-labelledby="themeLabel">
+              <button type="button" data-theme-set="system" aria-pressed="true">System</button>
+              <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
+              <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+            </div>
+          </div>
+          <div class="field">
+            <label id="defaultsLabel">Log form defaults <span style="font-weight:400;color:var(--muted)">(what a new session starts with)</span></label>
+            <div class="two-col" role="group" aria-labelledby="defaultsLabel">
+              <select id="defLocation" aria-label="Default location"></select>
+              <input type="text" id="defStakes" list="stakesList" maxlength="20" placeholder="Stakes, e.g. 1/2" autocomplete="off" aria-label="Default stakes">
+            </div>
+          </div>
+          <button type="button" class="btn btn-ghost" id="defSaveBtn">Save defaults</button>
           <div class="field">
             <label id="shareLabel">Session sharing <span style="font-weight:400;color:var(--muted)">(what leaguemates can see)</span></label>
             <div class="seg" role="group" aria-labelledby="shareLabel">
@@ -1085,6 +1171,10 @@
           </div>
           <p class="backup-note" id="acctEmail" style="margin-top:0"></p>
           <button type="button" class="btn btn-danger" id="signOutBtn">Sign out</button>
+          <div class="danger-zone">
+            <button type="button" class="danger-link" id="deleteAcctBtn">Delete my account</button>
+            <p class="backup-note" style="margin-top:6px">Erases your sessions, your profile, and your place on every leaderboard. There's no undo and no backup — export a CSV first if you want to keep a copy.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -1277,7 +1367,7 @@ function mockBackend() {
       if (pass.length < 6) throw { code: "auth/weak-password" };
       const uid = "u" + Math.random().toString(36).slice(2, 10);
       d.byEmail[email] = { uid, pass };
-      d.users[uid] = { profile: { nickname, leagueIds: [] }, sessions: {} };
+      d.users[uid] = { profile: { nickname, leagueIds: [], createdAt: Date.now() }, sessions: {} };
       put(d);
       setMe({ uid, email });
     },
@@ -1287,6 +1377,13 @@ function mockBackend() {
       setMe({ uid: rec.uid, email });
     },
     async signOutUser() { setMe(null); },
+    async deleteAccount(uid) {
+      const d = db();
+      delete d.users[uid];
+      for (const email of Object.keys(d.byEmail)) if (d.byEmail[email].uid === uid) delete d.byEmail[email];
+      put(d);
+      setMe(null);
+    },
     async resetPassword() { /* demo: nothing to send */ },
     async getProfile(uid) { return db().users[uid]?.profile || null; },
     async saveProfile(uid, data) { const d = db(); d.users[uid].profile = { ...d.users[uid].profile, ...data }; put(d); },
@@ -1350,6 +1447,14 @@ async function realBackend(config) {
     signIn: (email, pass) => A.signInWithEmailAndPassword(auth, email, pass),
     signOutUser: () => A.signOut(auth),
     resetPassword: (email) => A.sendPasswordResetEmail(auth, email),
+    // Data goes first: the rules only let us delete it while still signed in as its
+    // owner, so deleting the login first would strand every document behind it.
+    async deleteAccount(uid) {
+      const snap = await F.getDocs(F.collection(db, "users", uid, "sessions"));
+      for (const d of snap.docs) await F.deleteDoc(d.ref);
+      await F.deleteDoc(F.doc(db, "users", uid));
+      await A.deleteUser(auth.currentUser);
+    },
     getProfile: async (uid) => { const s = await F.getDoc(F.doc(db, "users", uid)); return s.exists() ? s.data() : null; },
     saveProfile: (uid, data) => F.setDoc(F.doc(db, "users", uid), data, { merge: true }),
     subSessions: (uid, cb) => F.onSnapshot(F.collection(db, "users", uid, "sessions"),
@@ -1405,6 +1510,61 @@ let pendingNickname = "";
 const byDate = (a, b) =>
   a.date === b.date ? (a.createdAt || 0) - (b.createdAt || 0) : (a.date < b.date ? -1 : 1);
 const sorted = () => [...sessions].sort(byDate);
+
+/* ---------- profile photos ----------
+   A leaguemate's photo comes out of their stats doc and straight into an <img> in
+   our browser, so it has to be a self-contained data URL. Anything else — an http
+   URL above all — would let whoever wrote it watch who opens the leaderboard. */
+const PHOTO_PX = 160, PHOTO_MAX = 48000;
+const safePhoto = (p) =>
+  typeof p === "string" && p.length <= PHOTO_MAX && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(p) ? p : "";
+
+function avatarHTML(photo, name, size) {
+  const box = `width:${size}px;height:${size}px;font-size:${Math.round(size * 0.42)}px`;
+  const ok = safePhoto(photo);
+  return ok
+    ? `<img class="avatar" style="${box}" src="${ok}" alt="">`
+    : `<span class="avatar" style="${box}" aria-hidden="true">${esc((name || "?").trim().charAt(0).toUpperCase() || "?")}</span>`;
+}
+
+// square-crop and shrink on the device, so what we store is a few KB rather than a phone photo
+async function photoDataURL(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error("decode"));
+      i.src = url;
+    });
+    const side = Math.min(img.naturalWidth, img.naturalHeight);
+    if (!side) throw new Error("empty");
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = PHOTO_PX;
+    cv.getContext("2d").drawImage(img,
+      (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side,
+      0, 0, PHOTO_PX, PHOTO_PX);
+    for (const q of [0.72, 0.6, 0.45, 0.3]) {
+      const out = cv.toDataURL("image/jpeg", q);
+      if (out.length <= PHOTO_MAX) return out;
+    }
+    return "";
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// the venue and game that show up most across every logged session
+function topCount(keyFn) {
+  const counts = new Map();
+  for (const s of sessions) {
+    const k = keyFn(s);
+    if (k) counts.set(k, (counts.get(k) || 0) + 1);
+  }
+  let key = null, count = 0;
+  for (const [k, c] of counts) if (c > count) { key = k; count = c; }
+  return key ? { key, count } : null;
+}
 
 // cumulative profit after each session, oldest first — the shape behind every curve in the app.
 // Takes a plain list so it works on a leaguemate's shared sessions too, not just our own.
@@ -1528,7 +1688,7 @@ backend.onAuth(async (user) => {
   }
   profile = await backend.getProfile(user.uid);
   if (!profile) {
-    profile = { nickname: pendingNickname || user.email.split("@")[0], leagueIds: [], shareSessions: SHARE_DEFAULT };
+    profile = { nickname: pendingNickname || user.email.split("@")[0], leagueIds: [], shareSessions: SHARE_DEFAULT, createdAt: Date.now() };
     await backend.saveProfile(user.uid, profile);
   }
   if (!Array.isArray(profile.leagueIds)) profile.leagueIds = [];
@@ -1542,6 +1702,7 @@ backend.onAuth(async (user) => {
   $("nickInput").value = profile.nickname;
   setShareToggle(profile.shareSessions);
   $("acctEmail").textContent = `Signed in as ${user.email}`;
+  renderAccount();
   unsubSessions = backend.subSessions(user.uid, (list) => {
     sessions = list;
     refreshDatalists();
@@ -1639,7 +1800,7 @@ function renderDash() {
 }
 
 /* ---------- play calendar: one square per day, colored by that day's result ---------- */
-const CAL_WEEKS = 52;
+const CAL_WEEKS = 53;   // 52 whole weeks is 364 days — one column more to cover a full year
 const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const mondayOf = (d) => { const m = new Date(d); m.setDate(m.getDate() - ((m.getDay() + 6) % 7)); return m; };
 
@@ -1654,13 +1815,12 @@ function drawCalendar(wrap) {
   }
   const today = todayISO();
   const span = spanOf(sessions);
-  // grid ends on the current week and reaches back to the first session, capped at a year
+  // always a full rolling year back from the current week, however little of it was played —
+  // the empty stretch before the first session is part of the picture
   const end = mondayOf(parseDate(span.last > today ? span.last : today));
   const start = new Date(end);
   start.setDate(start.getDate() - (CAL_WEEKS - 1) * 7);
-  const firstMon = mondayOf(parseDate(span.first));
-  if (firstMon > start) start.setTime(firstMon.getTime());
-  const weeks = Math.round((end - start) / (7 * 86400000)) + 1;
+  const weeks = CAL_WEEKS;
 
   // shade by size relative to the biggest day either way, so the scale fits whoever's playing
   const scale = Math.max(1, ...[...days.values()].map(v => Math.abs(v.net)));
@@ -2044,6 +2204,10 @@ function resetForm() {
   $("deleteBtn").hidden = true;
   $("cancelEditBtn").hidden = true;
   refreshDatalists();
+  // whatever they set in Account, so the usual game is already filled in
+  if (profile?.defaultLocation) refreshLocationOptions(profile.defaultLocation);
+  if (profile?.defaultStakes) $("fStakes").value = profile.defaultStakes;
+  updateLiveProfit();
 }
 
 function startEdit(id) {
@@ -2152,6 +2316,7 @@ const GROUP_COL = { stakes: "Stakes", game: "Game", location: "Location" };
 
 function renderStats() {
   const el = $("statsContent");
+  renderAccount();   // the account card sits outside statsContent but tracks the same sessions
   if (!sessions.length) {
     el.innerHTML = `<div class="card"><div class="empty">
       <div class="suits" aria-hidden="true">&spades; &hearts; &clubs; &diams;</div>
@@ -2211,6 +2376,7 @@ function buildStatsDoc() {
   const a = aggregate(sessions);
   const doc = {
     nickname: profile.nickname,
+    photo: safePhoto(profile.photo),   // goes out with the nickname — it's the same "who am I" info
     allTime: { net: r2(a.net), hours: r2(a.hours), sessions: a.count },
     weeks,
   };
@@ -2456,7 +2622,7 @@ function playerCardHTML(p) {
     <div class="card">
       <button type="button" class="pl-back" id="backToBoard">&#8249; Back to leaderboard</button>
       <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px">
-        <div class="pl-name">${esc(p.nickname || "?")}</div>
+        <div class="pl-name">${avatarHTML(p.photo, p.nickname, 30)}&nbsp; ${esc(p.nickname || "?")}</div>
         <div class="pl-net ${plClass(a.net)}">${fmtSigned(r2(a.net))} all-time</div>
       </div>
       <div class="pl-sub">${a.sessions} session${a.sessions === 1 ? "" : "s"} · ${(a.hours || 0).toFixed(1).replace(/\.0$/, "")} hrs · ${a.hours > 0 ? fmtSigned(r2(a.net / a.hours)) + "/hr" : "—"}</div>
@@ -2509,7 +2675,7 @@ function renderLeague() {
     .map(s => {
       const v = key === "all" ? (s.allTime || { net: 0, hours: 0, sessions: 0 })
         : (s.weeks?.[key] || { net: 0, hours: 0, sessions: 0 });
-      return { uid: s.uid, nickname: s.nickname || "?", ...v, hourly: v.hours > 0 ? v.net / v.hours : 0 };
+      return { uid: s.uid, nickname: s.nickname || "?", photo: s.photo, ...v, hourly: v.hours > 0 ? v.net / v.hours : 0 };
     })
     .sort((a, b) => b.net - a.net);
 
@@ -2520,7 +2686,7 @@ function renderLeague() {
         <tbody>
           ${rows.map((r, i) => `
             <tr class="${r.uid === ME.uid ? "me" : ""}" data-uid="${esc(r.uid)}" role="button" aria-label="View ${esc(r.nickname)}'s sessions">
-              <td class="name"><span class="rank ${i === 0 && r.net > 0 ? "r1" : ""}">${i + 1}</span>&nbsp; ${esc(r.nickname)}</td>
+              <td class="name"><span class="rank ${i === 0 && r.net > 0 ? "r1" : ""}">${i + 1}</span>&nbsp; ${avatarHTML(r.photo, r.nickname, 22)}&nbsp; ${esc(r.nickname)}</td>
               <td><span class="${plClass(r.net)}">${fmtSigned(r2(r.net))}</span></td>
               <td>${r.hours.toFixed(1).replace(/\.0$/, "")}</td>
               <td><span class="${plClass(r.hourly)}">${r.hours > 0 ? fmtSigned(r2(r.hourly)) : "—"}</span></td>
@@ -2652,7 +2818,109 @@ $("nickSaveBtn").addEventListener("click", async () => {
   profile.nickname = nick;
   await backend.saveProfile(ME.uid, { nickname: nick });
   await pushStats(true);
+  renderAccount();
   toast("Nickname updated");
+});
+
+// photo + the "most played" lines; the rest of the card is static markup
+function renderAccount() {
+  if (!profile) return;
+  const photo = safePhoto(profile.photo);
+  $("photoPreview").innerHTML = avatarHTML(photo, profile.nickname, 72);
+  $("photoBtn").textContent = photo ? "Change" : "Add photo";
+  $("photoRemoveBtn").hidden = !photo;
+
+  const game = topCount(GROUPERS.game);
+  const loc = topCount(s => (s.location || "").trim());
+  const line = (label, value, sub) => `
+    <div>
+      <span class="k">${label}</span>
+      <span class="v">${value}${sub ? `<small>${sub}</small>` : ""}</span>
+    </div>`;
+  const top = (label, t) => line(label, t ? esc(t.key) : "—", t && `${t.count} session${t.count === 1 ? "" : "s"}`);
+  $("acctFacts").innerHTML =
+    top("Most played game", game) +
+    top("Most played location", loc) +
+    line("Member since", memberSince());
+
+  // defaults for the log form
+  const sel = $("defLocation");
+  const choices = locationChoices();
+  sel.innerHTML = `<option value="">No default</option>`
+    + choices.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join("");
+  const canon = choices.find(l => l.toLowerCase() === String(profile.defaultLocation || "").trim().toLowerCase());
+  sel.value = canon || "";
+  $("defStakes").value = profile.defaultStakes || "";
+}
+
+// createdAt only exists on accounts made since sign-up started writing it; for the
+// rest the first logged session is the closest honest answer
+function memberSince() {
+  const ms = Number(profile?.createdAt);
+  if (Number.isFinite(ms) && ms > 0) {
+    return new Date(ms).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  }
+  if (sessions.length) {
+    return parseDate(spanOf(sessions).first).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  }
+  return "—";
+}
+
+/* ---------- appearance ---------- */
+const THEME_KEY = "bankroll.theme";
+function applyTheme(mode) {
+  if (mode === "light" || mode === "dark") document.documentElement.dataset.theme = mode;
+  else delete document.documentElement.dataset.theme;   // back to whatever the OS says
+  document.querySelectorAll("[data-theme-set]").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.themeSet === (mode || "system"))));
+}
+function savedTheme() {
+  try { return localStorage.getItem(THEME_KEY) || "system"; } catch { return "system"; }
+}
+document.querySelectorAll("[data-theme-set]").forEach(b => b.addEventListener("click", () => {
+  const mode = b.dataset.themeSet;
+  try { mode === "system" ? localStorage.removeItem(THEME_KEY) : localStorage.setItem(THEME_KEY, mode); } catch { /* private mode */ }
+  applyTheme(mode);
+  renderActive();   // the charts paint theme colors into their markup, so redraw them
+}));
+applyTheme(savedTheme());
+
+$("defSaveBtn").addEventListener("click", async () => {
+  const defaultLocation = $("defLocation").value;
+  const defaultStakes = $("defStakes").value.trim();
+  profile.defaultLocation = defaultLocation;
+  profile.defaultStakes = defaultStakes;
+  await backend.saveProfile(ME.uid, { defaultLocation, defaultStakes });
+  toast(defaultLocation || defaultStakes ? "Defaults saved" : "Defaults cleared");
+});
+
+$("photoBtn").addEventListener("click", () => $("photoFile").click());
+$("photoFile").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  if (!file.type.startsWith("image/")) return toast("Pick an image file");
+  let data;
+  try { data = await photoDataURL(file); }
+  catch { return toast("Couldn't read that image"); }
+  if (!data) return toast("Couldn't shrink that one small enough — try another");
+  profile.photo = data;
+  await backend.saveProfile(ME.uid, { photo: data });
+  await pushStats(true);
+  renderAccount();
+  toast("Photo updated");
+});
+$("photoRemoveBtn").addEventListener("click", () => {
+  modal("Remove your photo?", "Leaguemates go back to seeing your initial.", [
+    { label: "Remove", kind: "btn-danger", onClick: async () => {
+      profile.photo = "";
+      await backend.saveProfile(ME.uid, { photo: "" });
+      await pushStats(true);
+      renderAccount();
+      toast("Photo removed");
+    }},
+    { label: "Keep it", kind: "btn-ghost" },
+  ]);
 });
 function setShareToggle(on) {
   $("shareOn").setAttribute("aria-pressed", String(on));
@@ -2674,6 +2942,45 @@ $("signOutBtn").addEventListener("click", () => {
     { label: "Cancel", kind: "btn-ghost" },
   ]);
 });
+
+/* Two deliberate taps, because nothing here is recoverable. */
+$("deleteAcctBtn").addEventListener("click", () => {
+  const bits = [`${sessions.length} session${sessions.length === 1 ? "" : "s"}`, "your nickname and photo"];
+  if (profile.leagueIds.length) bits.push(`your row in ${profile.leagueIds.length} league${profile.leagueIds.length === 1 ? "" : "s"}`);
+  modal("Delete your account?", `This erases ${bits.join(", ")}. It can't be undone.\n\nIf you want a copy, tap Cancel and export a CSV first.`, [
+    { label: "Continue", kind: "btn-danger", onClick: confirmDeleteAccount },
+    { label: "Cancel", kind: "btn-ghost" },
+  ]);
+});
+function confirmDeleteAccount() {
+  modal("Last chance", "Deleting is permanent. There is no backup and no way to get any of it back.", [
+    { label: "Delete everything", kind: "btn-danger", onClick: doDeleteAccount },
+    { label: "Keep my account", kind: "btn-ghost" },
+  ]);
+}
+async function doDeleteAccount() {
+  const uid = ME.uid;
+  toast("Deleting…");
+  try {
+    // drop off every leaderboard first — those rows live outside our own user doc
+    for (const code of [...profile.leagueIds]) {
+      await backend.leaveLeague(uid, code).catch(() => {});
+    }
+    await backend.deleteAccount(uid);
+    toast("Account deleted");
+  } catch (ex) {
+    // Firebase refuses to delete a login that hasn't authenticated recently. By now the
+    // data is gone, so say plainly what's left and what clears it.
+    if (ex?.code === "auth/requires-recent-login") {
+      modal("Sign in once more to finish",
+        "Your sessions and profile are deleted. Firebase needs a fresh sign-in before it will remove the login itself — sign in again and tap Delete my account to finish.",
+        [{ label: "Sign out", kind: "btn-danger", onClick: () => backend.signOutUser() }]);
+    } else {
+      modal("Couldn't finish deleting", errMsg(ex) + "\n\nSome data may already be gone. Try again once you're back online.",
+        [{ label: "Close", kind: "btn-ghost" }]);
+    }
+  }
+}
 
 /* =====================================================================
    CSV backup
