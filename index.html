@@ -393,7 +393,6 @@
   .chart-tip .tt-row b { margin-left: auto; padding-left: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
   /* ---------- play calendar (a year of days, one square each) ---------- */
-  .cal-sub { font-size: 12.5px; color: var(--ink-2); margin: -4px 0 12px; line-height: 1.5; }
   .cal-row { display: flex; gap: 6px; align-items: flex-start; }
   .cal-dow {
     flex: none;
@@ -610,23 +609,25 @@
 
   /* ---------- stats & leaderboard tables ---------- */
   .stat-seg { margin-bottom: 2px; }
-  .table-scroll { overflow-x: auto; margin: 0 -16px; padding: 0 16px; }
-  table.stats { border-collapse: collapse; width: 100%; min-width: 336px; }
+  .table-scroll { overflow-x: auto; margin: 0 -16px; padding: 0 8px; }
+  /* seven columns on a narrow phone: the cells are tight on purpose so BB/hr
+     lands on screen instead of behind a horizontal scroll */
+  table.stats { border-collapse: collapse; width: 100%; min-width: 340px; }
   table.stats th {
     text-align: right;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.02em;
     color: var(--muted);
-    padding: 8px 6px;
+    padding: 8px 3px;
     border-bottom: 1px solid var(--hairline);
     white-space: nowrap;
   }
   table.stats th:first-child, table.stats td:first-child { text-align: left; padding-left: 2px; }
   table.stats td {
-    padding: 11px 6px;
-    font-size: 13.5px;
+    padding: 11px 3px;
+    font-size: 12px;
     text-align: right;
     border-bottom: 1px solid var(--grid);
     font-variant-numeric: tabular-nums;
@@ -1390,7 +1391,7 @@ let editingId = null;
 let gameType = "cash";
 let statsGroup = "stakes";
 let activeLeague = null;    // league code
-let lbMode = "week";        // week | all | history
+let lbMode = "all";         // week | all | history — the board opens on all-time
 let leagueFormMode = null;  // null | "create" | "join" — inline add-league form when already in leagues
 let playerView = null;      // uid of leaguemate whose sessions are open, or null
 let historyWeek = null;
@@ -1415,11 +1416,10 @@ function curvePoints(list) {
     return { date: s.date, cum, profit, stakes: stakesLabel(s) };
   });
 }
-// first tracked session → most recent, and the calendar days that span
+// first tracked session → most recent
 function spanOf(list) {
   const dates = list.map(s => s.date).sort();
-  const first = dates[0], last = dates[dates.length - 1];
-  return { first, last, days: Math.round((parseDate(last) - parseDate(first)) / 86400000) + 1 };
+  return { first: dates[0], last: dates[dates.length - 1] };
 }
 
 /* ---------- toast & modal ---------- */
@@ -1602,8 +1602,8 @@ function renderDash() {
   const totalFees = sessions.reduce((t, s) => t + feeOf(s), 0);
   const span = spanOf(sessions);
   const range = span.first === span.last
-    ? `${a.count} session${a.count === 1 ? "" : "s"} · ${fmtDate(span.first)}`
-    : `${a.count} sessions · ${fmtDate(span.first)} – ${fmtDate(span.last)} · ${span.days} days`;
+    ? fmtDate(span.first)
+    : `${fmtDate(span.first)} – ${fmtDate(span.last)}`;
   el.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="card hero">
@@ -1629,7 +1629,7 @@ function renderDash() {
         <div class="chart-wrap" id="chartWrap"></div>
       </div>
       <div class="card">
-        <h2>When you played</h2>
+        <h2>Session calendar</h2>
         <div id="calContent"></div>
       </div>
     </div>`;
@@ -1670,7 +1670,7 @@ function drawCalendar(wrap) {
     return (net > 0 ? "w" : "l") + (r < 0.2 ? 1 : r < 0.55 ? 2 : 3);
   };
 
-  let cells = "", months = "", curMonth = -1, played = 0, up = 0, down = 0;
+  let cells = "", months = "", curMonth = -1;
   const cur = new Date(start);
   for (let w = 0; w < weeks; w++) {
     if (cur.getMonth() !== curMonth) {
@@ -1683,8 +1683,6 @@ function drawCalendar(wrap) {
       if (iso > today) {
         cells += `<div class="cal-cell void"></div>`;      // rest of this week hasn't happened yet
       } else if (rec) {
-        played++;
-        if (rec.net > 0) up++; else if (rec.net < 0) down++;
         const label = `${fmtDate(iso)} · ${fmtSigned(r2(rec.net))} · ${rec.count} session${rec.count === 1 ? "" : "s"}`;
         cells += `<button type="button" class="cal-cell ${level(rec.net)}" data-label="${esc(label)}" title="${esc(label)}" aria-label="${esc(label)}"></button>`;
       } else {
@@ -1695,7 +1693,6 @@ function drawCalendar(wrap) {
   }
 
   wrap.innerHTML = `
-    <p class="cal-sub">${played} day${played === 1 ? "" : "s"} at the tables · ${up} up · ${down} down${weeks >= CAL_WEEKS ? " · last 12 months" : ""}</p>
     <div class="cal-row">
       <div class="cal-dow"><span style="grid-row:1">Mon</span><span style="grid-row:3">Wed</span><span style="grid-row:5">Fri</span></div>
       <div class="cal-wrap">
@@ -1708,7 +1705,7 @@ function drawCalendar(wrap) {
     <div class="cal-legend">
       <span>Lost</span>
       <i style="background:var(--cal-l3)"></i><i style="background:var(--cal-l2)"></i><i style="background:var(--cal-l1)"></i>
-      <span class="gap"></span><i style="background:var(--cal-0)"></i><span>didn't play</span><span class="gap"></span>
+      <span class="gap"></span>
       <i style="background:var(--cal-w1)"></i><i style="background:var(--cal-w2)"></i><i style="background:var(--cal-w3)"></i>
       <span>Won</span>
     </div>`;
@@ -2181,6 +2178,7 @@ function renderStats() {
       <td><span class="${plClass(a.net)}">${fmtSigned(r2(a.net))}</span></td>
       <td><span class="${plClass(a.roi)}">${a.roi === null ? "—" : fmtPct(a.roi)}</span></td>
       <td><span class="${plClass(a.hourly)}">${a.hours > 0 ? fmtSigned(r2(a.hourly)) : "—"}</span></td>
+      <td><span class="${plClass(a.bbPerHour)}">${a.bbPerHour === null ? "—" : fmtBB(a.bbPerHour)}</span></td>
     </tr>`;
 
   el.innerHTML = `
@@ -2188,7 +2186,7 @@ function renderStats() {
       <h2>Results by ${GROUP_COL[statsGroup].toLowerCase()}</h2>
       <div class="table-scroll">
         <table class="stats">
-          <thead><tr><th scope="col">${GROUP_COL[statsGroup]}</th><th scope="col">Sess</th><th scope="col">Hrs</th><th scope="col">Net</th><th scope="col">ROI</th><th scope="col">$/hr</th></tr></thead>
+          <thead><tr><th scope="col">${GROUP_COL[statsGroup]}</th><th scope="col">Sess</th><th scope="col">Hrs</th><th scope="col">Net</th><th scope="col">ROI</th><th scope="col">$/hr</th><th scope="col">BB/hr</th></tr></thead>
           <tbody>
             ${rows.map(r => row(r.k, r.a)).join("")}
             ${row("All", total, "total")}
@@ -2410,7 +2408,6 @@ function curvesCardHTML(series) {
         </button>`).join("")}
       ${spares ? `<span class="curve-chip"><i style="background:var(--muted)"></i>${spares} more</span>` : ""}
     </div>
-    <p class="lb-note">Drawn from shared sessions — a leaguemate joins the picture once their session sharing is on <strong>Full sessions</strong>. Tap a name for their session list.</p>
   </div>`;
 }
 
