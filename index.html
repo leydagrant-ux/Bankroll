@@ -393,6 +393,18 @@
   .chart-tip .tt-row b { margin-left: auto; padding-left: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
   /* ---------- play calendar (a year of days, one square each) ---------- */
+  .cal-years { display: flex; gap: 6px; flex-wrap: wrap; margin: -4px 0 12px; }
+  .cal-year {
+    border: 1px solid var(--hairline);
+    background: var(--surface-2);
+    color: var(--ink-2);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 12.5px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+  .cal-year.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
   .cal-row { display: flex; gap: 6px; align-items: flex-start; }
   .cal-dow {
     flex: none;
@@ -1500,6 +1512,7 @@ let lbMode = "all";         // week | all | history — the board opens on all-t
 let leagueFormMode = null;  // null | "create" | "join" — inline add-league form when already in leagues
 let playerView = null;      // uid of leaguemate whose sessions are open, or null
 let historyWeek = null;
+let calYear = new Date().getFullYear();   // which year the session calendar is showing
 const leagueData = new Map();   // code -> { league, stats } | null while loading
 const leagueSubs = new Map();   // code -> unsubscribe
 const statsHealed = new Set();  // leagues we already re-pushed stats to this session
@@ -1800,9 +1813,15 @@ function renderDash() {
 }
 
 /* ---------- play calendar: one square per day, colored by that day's result ---------- */
-const CAL_WEEKS = 53;   // 52 whole weeks is 364 days — one column more to cover a full year
 const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const mondayOf = (d) => { const m = new Date(d); m.setDate(m.getDate() - ((m.getDay() + 6) % 7)); return m; };
+
+// years worth offering, newest first: anything played plus the year we're in
+function calYears() {
+  const years = new Set(sessions.map(s => Number(s.date.slice(0, 4))));
+  years.add(new Date().getFullYear());
+  return [...years].sort((a, b) => b - a);
+}
 
 function drawCalendar(wrap) {
   // one bucket per calendar day — two sessions on the same day read as that day's net
@@ -1814,15 +1833,17 @@ function drawCalendar(wrap) {
     days.set(s.date, d);
   }
   const today = todayISO();
-  const span = spanOf(sessions);
-  // always a full rolling year back from the current week, however little of it was played —
-  // the empty stretch before the first session is part of the picture
-  const end = mondayOf(parseDate(span.last > today ? span.last : today));
-  const start = new Date(end);
-  start.setDate(start.getDate() - (CAL_WEEKS - 1) * 7);
-  const weeks = CAL_WEEKS;
+  const years = calYears();
+  if (!years.includes(calYear)) calYear = years[0];
 
-  // shade by size relative to the biggest day either way, so the scale fits whoever's playing
+  // Jan 1 to Dec 31 of the chosen year. The grid still runs in whole Mon–Sun columns,
+  // so the days either side of the year are rendered blank rather than dropped.
+  const start = mondayOf(new Date(calYear, 0, 1));
+  const end = mondayOf(new Date(calYear, 11, 31));
+  const weeks = Math.round((end - start) / (7 * 86400000)) + 1;
+
+  // shade by size relative to the biggest day either way, so the scale fits whoever's
+  // playing — and stays comparable when you flip between years
   const scale = Math.max(1, ...[...days.values()].map(v => Math.abs(v.net)));
   const level = (net) => {
     if (net === 0) return "even";
@@ -1830,18 +1851,20 @@ function drawCalendar(wrap) {
     return (net > 0 ? "w" : "l") + (r < 0.2 ? 1 : r < 0.55 ? 2 : 3);
   };
 
-  let cells = "", months = "", curMonth = -1;
+  let cells = "", months = "", todayCol = -1;
   const cur = new Date(start);
   for (let w = 0; w < weeks; w++) {
-    if (cur.getMonth() !== curMonth) {
-      curMonth = cur.getMonth();
-      months += `<span style="grid-column:${w + 1};grid-row:1">${cur.toLocaleDateString("en-US", { month: "short" })}</span>`;
-    }
     for (let d = 0; d < 7; d++) {
       const iso = isoOf(cur);
-      const rec = days.get(iso);
-      if (iso > today) {
-        cells += `<div class="cal-cell void"></div>`;      // rest of this week hasn't happened yet
+      const inYear = cur.getFullYear() === calYear;
+      // a column earns its month label from the 1st landing inside it
+      if (inYear && cur.getDate() === 1) {
+        months += `<span style="grid-column:${w + 1};grid-row:1">${cur.toLocaleDateString("en-US", { month: "short" })}</span>`;
+      }
+      if (iso === today) todayCol = w;
+      const rec = inYear ? days.get(iso) : null;
+      if (!inYear || iso > today) {
+        cells += `<div class="cal-cell void"></div>`;   // outside the year, or hasn't happened yet
       } else if (rec) {
         const label = `${fmtDate(iso)} · ${fmtSigned(r2(rec.net))} · ${rec.count} session${rec.count === 1 ? "" : "s"}`;
         cells += `<button type="button" class="cal-cell ${level(rec.net)}" data-label="${esc(label)}" title="${esc(label)}" aria-label="${esc(label)}"></button>`;
@@ -1852,7 +1875,13 @@ function drawCalendar(wrap) {
     }
   }
 
-  wrap.innerHTML = `
+  const yearTabs = years.length > 1
+    ? `<div class="cal-years" role="group" aria-label="Calendar year">
+        ${years.map(y => `<button type="button" class="cal-year ${y === calYear ? "on" : ""}" data-year="${y}" aria-pressed="${y === calYear}">${y}</button>`).join("")}
+      </div>`
+    : "";
+
+  wrap.innerHTML = yearTabs + `
     <div class="cal-row">
       <div class="cal-dow"><span style="grid-row:1">Mon</span><span style="grid-row:3">Wed</span><span style="grid-row:5">Fri</span></div>
       <div class="cal-wrap">
@@ -1870,10 +1899,19 @@ function drawCalendar(wrap) {
       <span>Won</span>
     </div>`;
 
+  // This year opens on today — not on the end of the grid, which is now an empty
+  // December. A past year opens in January, where it starts.
   const scroller = wrap.querySelector(".cal-wrap");
-  scroller.scrollLeft = scroller.scrollWidth;  // open on the most recent week
+  const colW = wrap.querySelector(".cal-grid").getBoundingClientRect().width / weeks;
+  scroller.scrollLeft = todayCol >= 0
+    ? Math.max(0, (todayCol + 2) * colW - scroller.clientWidth)
+    : 0;
   wrap.querySelectorAll(".cal-cell[data-label]").forEach(c =>
     c.addEventListener("click", () => toast(c.dataset.label)));
+  wrap.querySelectorAll(".cal-year").forEach(b => b.addEventListener("click", () => {
+    calYear = Number(b.dataset.year);
+    drawCalendar(wrap);
+  }));
 }
 
 // the skipped rows are fixable — show which ones so they can be corrected on the form
@@ -2830,7 +2868,14 @@ function renderAccount() {
   $("photoBtn").textContent = photo ? "Change" : "Add photo";
   $("photoRemoveBtn").hidden = !photo;
 
-  const game = topCount(GROUPERS.game);
+  // "1/2 NLHE" rather than bare "NLHE" — the stakes are the half that says what game it was.
+  // Blank stakes are stored as "?", so those fall back to the game on its own.
+  const gameKey = (s) => {
+    const st = (s.stakes || "").trim();
+    const named = st && st !== "?" ? `${st} ${s.game}` : s.game;
+    return s.gameType === "tournament" ? `${named} MTT` : named;
+  };
+  const game = topCount(gameKey);
   const loc = topCount(s => (s.location || "").trim());
   const line = (label, value, sub) => `
     <div>
