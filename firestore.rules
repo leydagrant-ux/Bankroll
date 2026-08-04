@@ -31,5 +31,44 @@ service cloud.firestore {
         allow write: if request.auth != null && request.auth.uid == uid;
       }
     }
+
+    // Home games, gated the same way as leagues: the doc id is an unguessable
+    // 6-char code and there is no `list` rule, so a game can only be reached
+    // by someone the host sent the invite link to.
+    match /homegames/{code} {
+      allow get: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.hostUid == request.auth.uid;
+      allow update, delete: if request.auth != null
+                    && request.auth.uid == resource.data.hostUid;
+
+      // The ledger. Confirmed money is host-only: a player may claim a seat
+      // when they follow the link, and after that may only edit their display
+      // name and their `claim` — the buy-ins and cash-out they are *proposing*.
+      // So a player can report what they think they're in for, and can never
+      // edit what they actually owe.
+      match /players/{playerId} {
+        function host() {
+          return get(/databases/$(database)/documents/homegames/$(code)).data.hostUid;
+        }
+        function isHost() { return request.auth.uid == host(); }
+        function isSelf() { return request.auth.uid == playerId; }
+
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && (
+          isHost() ||
+          // Self-join starts with an empty ledger — no self-granted buy-ins.
+          (isSelf()
+            && request.resource.data.buyIns.size() == 0
+            && request.resource.data.cashOut == null)
+        );
+        allow update: if request.auth != null && (
+          isHost() ||
+          (isSelf() && request.resource.data.diff(resource.data)
+            .affectedKeys().hasOnly(['name', 'claim', 'claimedAt']))
+        );
+        allow delete: if request.auth != null && isHost();
+      }
+    }
   }
 }

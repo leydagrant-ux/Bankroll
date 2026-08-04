@@ -1,7 +1,7 @@
 /* Bankroll app-shell cache. Bump VERSION on every deploy that changes index.html. */
-const VERSION = "v2.3.0";
+const VERSION = "v2.4.0";
 const CACHE = `bankroll-${VERSION}`;
-const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/chip-180.png", "icons/chip-192.png", "icons/chip-512.png"];
+const SHELL = ["./", "index.html", "settle.js", "equity.js", "manifest.webmanifest", "icons/chip-180.png", "icons/chip-192.png", "icons/chip-512.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

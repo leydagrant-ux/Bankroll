@@ -674,20 +674,25 @@
   }
   .tab-btn {
     flex: 1;
+    min-width: 0;
     background: none;
     border: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 3px;
-    padding: 6px 2px;
+    padding: 6px 1px;
     color: var(--tab-idle);
-    font-size: 10px;
+    /* Six tabs leaves ~56px each at 375px. "Dashboard" and "Home game" both
+       measure ~47px at this size, so nothing wraps — but pin it anyway, since
+       a wrapped label would shove the whole bar taller. */
+    font-size: 9.5px;
+    white-space: nowrap;
     font-weight: 650;
-    letter-spacing: 0.02em;
+    letter-spacing: 0;
     border-radius: 10px;
   }
-  .tab-btn svg { width: 23px; height: 23px; }
+  .tab-btn svg { width: 22px; height: 22px; }
   .tab-btn[aria-selected="true"] { color: var(--tab-active); }
   .tab-btn.add-tab svg {
     width: 34px; height: 34px;
@@ -699,6 +704,190 @@
     box-shadow: 0 3px 10px rgba(0,0,0,0.22);
     outline: 2px dashed rgba(255, 255, 255, 0.55);
     outline-offset: -6px;
+  }
+
+  /* ---------- home game ---------- */
+  .invite {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--accent-wash);
+    border: 1px dashed var(--accent);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .invite .code {
+    font-size: 22px; font-weight: 800; letter-spacing: 0.22em;
+    color: var(--accent-deep); font-variant-numeric: tabular-nums;
+  }
+  .invite .grow { flex: 1; min-width: 60px; }
+  .btn-sm {
+    padding: 7px 12px; border-radius: 9px; font-size: 13px; font-weight: 650;
+    border: 1px solid var(--ring); background: var(--surface); color: var(--ink);
+  }
+  .btn-sm.accent { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .btn-sm:active { filter: brightness(0.94); }
+
+  .plist { display: flex; flex-direction: column; gap: 8px; }
+  .prow {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .prow.me { border-color: var(--accent); background: var(--accent-wash); }
+  .prow .pmain { flex: 1; min-width: 0; }
+  .prow .pname {
+    font-size: 15px; font-weight: 650;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .prow .psub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .prow .pamt { text-align: right; font-variant-numeric: tabular-nums; flex: none; }
+  .prow .pamt .big { font-size: 15px; font-weight: 750; }
+  .prow .pbtns { display: flex; gap: 6px; flex: none; }
+  .tag {
+    display: inline-block; font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 2px 6px; border-radius: 5px;
+    background: var(--surface); color: var(--muted); border: 1px solid var(--hairline);
+  }
+  .tag.live { background: var(--win-wash); color: var(--win); border-color: transparent; }
+  .tag.pending { background: var(--accent-wash); color: var(--accent-deep); border-color: transparent; }
+
+  .pay-list { display: flex; flex-direction: column; gap: 8px; }
+  .pay {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px; border-radius: 12px;
+    background: var(--surface-2); border: 1px solid var(--hairline);
+    font-size: 14.5px;
+  }
+  .pay.mine { background: var(--accent-wash); border-color: var(--accent); font-weight: 650; }
+  .pay .who { flex: 1; min-width: 0; }
+  .pay .amt { font-weight: 750; font-variant-numeric: tabular-nums; flex: none; }
+  .pay .arrow { color: var(--muted); flex: none; }
+  .warn {
+    background: var(--loss-wash); border: 1px solid var(--loss); color: var(--loss);
+    border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.5;
+  }
+  .note-row { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+  /* ---------- live session timer ---------- */
+  .timer-bar {
+    position: sticky; top: 0; z-index: 15;
+    margin: 0 -16px 2px;
+    padding: 10px 16px calc(10px + env(safe-area-inset-top, 0px));
+    background: linear-gradient(180deg, var(--felt-hi), var(--felt));
+    border-bottom: 2px solid var(--rail);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .timer-bar .clock {
+    font-size: 22px; font-weight: 800; color: var(--felt-ink);
+    font-variant-numeric: tabular-nums; letter-spacing: 0.01em;
+  }
+  .timer-bar .meta { font-size: 11.5px; color: var(--felt-muted); margin-top: 1px; }
+  .timer-bar .grow { flex: 1; min-width: 0; }
+  .timer-bar .btn-sm { background: rgba(0,0,0,0.28); color: var(--felt-ink); border-color: rgba(255,255,255,0.22); }
+  .timer-bar .btn-sm.accent { background: var(--accent); color: var(--accent-ink); }
+  .timer-bar.paused { filter: saturate(0.5); }
+  .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--felt-win); flex: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    .pulse { animation: pulse 2s ease-in-out infinite; }
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  /* ---------- cards & hand logger ---------- */
+  .pcard {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 30px; height: 40px; padding: 0 5px;
+    background: #fffdf6; color: #16150f;
+    border: 1px solid rgba(0,0,0,0.28); border-radius: 5px;
+    font-size: 16px; font-weight: 750; line-height: 1;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.22);
+    font-variant-numeric: tabular-nums;
+  }
+  .pcard.red { color: #c0242c; }
+  .pcard.slot {
+    background: transparent; color: var(--muted);
+    border: 1px dashed var(--hairline); box-shadow: none; font-weight: 500;
+  }
+  .pcard.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .hand-cards { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+
+  .picker-grid {
+    display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px;
+  }
+  .picker-grid button {
+    padding: 6px 0; border-radius: 5px; font-size: 12.5px; font-weight: 700;
+    border: 1px solid rgba(0,0,0,0.22); background: #fffdf6; color: #16150f;
+    line-height: 1;
+  }
+  .picker-grid button.red { color: #c0242c; }
+  .picker-grid button[disabled] { opacity: 0.26; }
+  .picker-suit { font-size: 11px; color: var(--muted); font-weight: 700; margin: 8px 0 3px; }
+
+  .seat {
+    border: 1px solid var(--hairline); border-radius: 12px;
+    padding: 10px 12px; background: var(--surface-2);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .seat.hero { border-color: var(--accent); background: var(--accent-wash); }
+  .seat-head { display: flex; align-items: center; gap: 8px; }
+  .seat-head .lbl { font-size: 12.5px; font-weight: 700; flex: 1; min-width: 0; }
+  .eqbar {
+    height: 6px; border-radius: 999px; background: var(--grid); overflow: hidden;
+  }
+  .eqbar i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+  .seat.hero .eqbar i { background: var(--win); }
+  .eq-pct { font-size: 14px; font-weight: 750; font-variant-numeric: tabular-nums; flex: none; }
+  .eq-note { font-size: 11.5px; color: var(--muted); }
+
+  .hand-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid var(--hairline);
+  }
+  .hand-row:last-child { border-bottom: 0; }
+  .hand-row .hmain { flex: 1; min-width: 0; }
+  .hand-row .hsub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  /* ---------- analytics ---------- */
+  .range-seg { flex-wrap: wrap; }
+  .bars { display: flex; flex-direction: column; gap: 7px; }
+  .bar-row { display: grid; grid-template-columns: 44px 1fr auto; gap: 8px; align-items: center; font-size: 12.5px; }
+  .bar-row .track { height: 16px; background: var(--grid); border-radius: 4px; position: relative; overflow: hidden; }
+  .bar-row .track i { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+  .bar-row .track i.win { background: var(--win); }
+  .bar-row .track i.loss { background: var(--loss); }
+  .bar-row .zero { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--muted); opacity: 0.5; }
+  .bar-row .v { font-variant-numeric: tabular-nums; font-weight: 650; min-width: 56px; text-align: right; }
+  .bar-row .k { color: var(--ink-2); font-weight: 650; }
+
+  /* ---------- full-screen sheet (hand logger) ---------- */
+  .sheet-back {
+    position: fixed; inset: 0; z-index: 60;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  .sheet {
+    background: var(--surface);
+    width: 100%; max-width: 560px;
+    height: 94dvh;
+    border-radius: 16px 16px 0 0;
+    display: flex; flex-direction: column;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.3);
+  }
+  .sheet-top {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .sheet-top h3 { margin: 0; font-size: 17px; flex: 1; }
+  .sheet-body {
+    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .sheet-foot {
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--hairline);
   }
 
   /* ---------- modal & toast ---------- */
@@ -721,6 +910,10 @@
     box-shadow: 0 -8px 40px rgba(0,0,0,0.3);
   }
   .modal h3 { margin: 0 0 8px; font-size: 17px; }
+  /* #modalBody is a div, not a p: formModal() puts a field grid inside it and
+     the parser would hoist block content straight out of a paragraph. */
+  .modal #modalBody { margin: 0 0 16px; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  .modal #modalBody:empty { margin: 0; }
   .modal p { margin: 0 0 16px; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
   .modal .btn + .btn { margin-top: 8px; }
 
@@ -785,6 +978,7 @@
       <p class="auth-err" id="authErr" hidden></p>
       <button type="submit" class="btn btn-primary" id="authGo">Sign in</button>
       <button type="button" class="auth-alt" id="forgotBtn">Forgot password?</button>
+      <p class="demo-note" id="inviteNote" hidden></p>
       <p class="demo-note" id="demoNote" hidden>Demo mode — no server connected. Accounts and data live only in this browser.</p>
     </form>
   </div>
@@ -798,6 +992,17 @@
   </header>
 
   <main>
+    <div class="timer-bar" id="timerBar" hidden>
+      <span class="pulse" id="timerPulse" aria-hidden="true"></span>
+      <div class="grow">
+        <div class="clock" id="timerClock">0:00:00</div>
+        <div class="meta" id="timerMeta"></div>
+      </div>
+      <button type="button" class="btn-sm accent" id="timerHandBtn">+ Hand</button>
+      <button type="button" class="btn-sm" id="timerPauseBtn">Pause</button>
+      <button type="button" class="btn-sm" id="timerStopBtn">Finish</button>
+    </div>
+
     <section class="view active" id="view-dash" aria-label="Dashboard">
       <div id="dashContent"></div>
     </section>
@@ -807,6 +1012,12 @@
     </section>
 
     <section class="view" id="view-add" aria-label="Add session">
+      <div class="card" id="startCard">
+        <h2>Playing right now?</h2>
+        <p class="note-row" style="margin:0 0 12px">Start the clock and it keeps time in the background — close the app, let the phone die, the time is still right. You can log hands as they happen.</p>
+        <button type="button" class="btn btn-primary" id="startTimerBtn">Start the clock</button>
+      </div>
+
       <div class="card">
         <h2 id="formTitle">Log a session</h2>
         <form class="form-grid" id="sessForm" novalidate>
@@ -892,6 +1103,15 @@
           <button type="button" class="btn btn-danger" id="deleteBtn" hidden>Delete session</button>
         </form>
       </div>
+
+      <div class="card" id="handsCard" hidden>
+        <h2>Hands from this session</h2>
+        <div id="handsList"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-home" aria-label="Home game">
+      <div id="homeContent"></div>
     </section>
 
     <section class="view" id="view-league" aria-label="League">
@@ -945,6 +1165,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
         Add
       </button>
+      <button class="tab-btn" role="tab" data-view="home" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="10" rx="5"/><circle cx="8.5" cy="12" r="1.6"/><circle cx="15.5" cy="12" r="1.6"/></svg>
+        Home game
+      </button>
       <button class="tab-btn" role="tab" data-view="league" aria-selected="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 5"/><path d="M17 6h3a3 3 0 0 1-3 5"/></svg>
         League
@@ -957,10 +1181,23 @@
   </nav>
 </div>
 
+<div class="sheet-back" id="handSheet" role="dialog" aria-modal="true" aria-labelledby="handSheetTitle" hidden>
+  <div class="sheet">
+    <div class="sheet-top">
+      <h3 id="handSheetTitle">Log a hand</h3>
+      <button type="button" class="btn-sm" id="handCloseBtn">Close</button>
+    </div>
+    <div class="sheet-body" id="handBody"></div>
+    <div class="sheet-foot">
+      <button type="button" class="btn btn-primary" id="handSaveBtn">Save hand</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-back" id="modalBack" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal">
     <h3 id="modalTitle"></h3>
-    <p id="modalBody"></p>
+    <div id="modalBody"></div>
     <div id="modalBtns"></div>
   </div>
 </div>
@@ -968,6 +1205,12 @@
 
 <script type="module">
 "use strict";
+
+import { settleUp } from "./settle.js";
+import {
+  equity, evaluate, handName, parseCard, cardLabel,
+  RANK_CHARS, SUIT_CHARS, SUIT_SYMBOLS, SUIT_IS_RED,
+} from "./equity.js";
 
 /* =====================================================================
    Backend config — paste your Firebase web config here. While apiKey is
@@ -1049,10 +1292,14 @@ const currentWeekKey = () => weekKey(todayISO());
    ===================================================================== */
 function mockBackend() {
   const DB_KEY = "bankroll.mockdb.v1", AUTH_KEY = "bankroll.mockauth.v1";
-  const db = () => JSON.parse(localStorage.getItem(DB_KEY) || '{"users":{},"byEmail":{},"leagues":{}}');
+  const db = () => {
+    const d = JSON.parse(localStorage.getItem(DB_KEY) || '{"users":{},"byEmail":{},"leagues":{}}');
+    if (!d.games) d.games = {}; // added in v2.4; older demo databases predate it
+    return d;
+  };
   const put = (d) => localStorage.setItem(DB_KEY, JSON.stringify(d));
   let authCb = null;
-  const subs = { sessions: [], leagues: [] }; // {key, cb}
+  const subs = { sessions: [], leagues: [], games: [] }; // {key, cb}
   const fire = () => {
     // Read state fresh per callback: a callback may itself write (e.g. a stats
     // push inside the sessions callback), and a single snapshot taken up front
@@ -1064,6 +1311,10 @@ function mockBackend() {
     for (const s of [...subs.leagues]) {
       const lg = db().leagues[s.code];
       s.cb(lg ? { league: { name: lg.name, ownerUid: lg.ownerUid, memberUids: lg.memberUids }, stats: Object.entries(lg.stats).map(([uid, v]) => ({ uid, ...v })) } : null);
+    }
+    for (const s of [...subs.games]) {
+      const g = db().games[s.code];
+      s.cb(g ? { game: g.game, players: Object.entries(g.players).map(([id, v]) => ({ id, ...v })) } : null);
     }
   };
   const me = () => JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
@@ -1125,6 +1376,45 @@ function mockBackend() {
       const d = db();
       if (d.leagues[code]) { d.leagues[code].stats[uid] = statsDoc; put(d); fire(); }
     },
+    async createGame(code, game) {
+      const d = db();
+      d.games[code] = { game, players: {} };
+      put(d); fire();
+    },
+    async getGame(code) { return db().games[code]?.game || null; },
+    async getPlayer(code, id) {
+      const p = db().games[code]?.players[id];
+      return p ? { id, ...p } : null;
+    },
+    async updateGame(code, patch) {
+      const d = db();
+      if (!d.games[code]) throw { code: "game/not-found" };
+      Object.assign(d.games[code].game, patch);
+      put(d); fire();
+    },
+    async putPlayer(code, id, player) {
+      const d = db();
+      if (!d.games[code]) throw { code: "game/not-found" };
+      const { id: _drop, ...rest } = player;
+      d.games[code].players[id] = rest;
+      put(d); fire();
+    },
+    async updatePlayer(code, id, patch) {
+      const d = db();
+      if (!d.games[code]?.players[id]) throw { code: "game/not-found" };
+      Object.assign(d.games[code].players[id], patch);
+      put(d); fire();
+    },
+    async delPlayer(code, id) {
+      const d = db();
+      if (d.games[code]) { delete d.games[code].players[id]; put(d); fire(); }
+    },
+    subGame(code, cb) {
+      const rec = { code, cb };
+      subs.games.push(rec);
+      setTimeout(fire, 0);
+      return () => subs.games.splice(subs.games.indexOf(rec), 1);
+    },
   };
 }
 
@@ -1176,6 +1466,30 @@ async function realBackend(config) {
       return () => { u1(); u2(); };
     },
     putStats: (uid, code, statsDoc) => F.setDoc(F.doc(db, "leagues", code, "stats", uid), statsDoc),
+    createGame: (code, game) => F.setDoc(F.doc(db, "homegames", code), game),
+    async getGame(code) {
+      const s = await F.getDoc(F.doc(db, "homegames", code));
+      return s.exists() ? s.data() : null;
+    },
+    async getPlayer(code, id) {
+      const s = await F.getDoc(F.doc(db, "homegames", code, "players", id));
+      return s.exists() ? { id, ...s.data() } : null;
+    },
+    updateGame: (code, patch) => F.updateDoc(F.doc(db, "homegames", code), patch),
+    putPlayer(code, id, player) {
+      const { id: _drop, ...rest } = player;
+      return F.setDoc(F.doc(db, "homegames", code, "players", id), rest);
+    },
+    updatePlayer: (code, id, patch) => F.updateDoc(F.doc(db, "homegames", code, "players", id), patch),
+    delPlayer: (code, id) => F.deleteDoc(F.doc(db, "homegames", code, "players", id)),
+    subGame(code, cb) {
+      let game = null, players = [];
+      const emit = () => cb(game ? { game, players } : null);
+      const u1 = F.onSnapshot(F.doc(db, "homegames", code), (s) => { game = s.exists() ? s.data() : null; emit(); });
+      const u2 = F.onSnapshot(F.collection(db, "homegames", code, "players"),
+        (s) => { players = s.docs.map(d => ({ id: d.id, ...d.data() })); emit(); });
+      return () => { u1(); u2(); };
+    },
   };
 }
 
@@ -1201,6 +1515,19 @@ const statsHealed = new Set();  // leagues we already re-pushed stats to this se
 let unsubSessions = null;
 let lastPushedStats = "";
 let pendingNickname = "";
+let activeGame = null;      // home game code we're subscribed to, or null
+let gameData = null;        // { game, players } | null while loading
+let unsubGame = null;
+let settleView = false;     // host is on the cash-out / settle screen
+let pendingJoinCode = null; // ?game=CODE followed before sign-in; joined after auth
+let statsRange = "all";     // all | 30 | 90 | ytd — analytics date filter
+
+/**
+ * Where the open home game code is remembered, so the tab reopens where you
+ * left it. Keyed per account: a phone that two people sign into shouldn't drop
+ * the second one into the first one's ledger.
+ */
+const gameKey = () => `bankroll.activeGame.v1.${ME?.uid || "anon"}`;
 
 const sorted = () => [...sessions].sort((a, b) =>
   a.date === b.date ? (a.createdAt || 0) - (b.createdAt || 0) : (a.date < b.date ? -1 : 1));
@@ -1230,6 +1557,50 @@ function modal(title, body, buttons) {
 }
 function closeModal() { $("modalBack").classList.remove("open"); }
 $("modalBack").addEventListener("click", (e) => { if (e.target === $("modalBack")) closeModal(); });
+
+/**
+ * Modal with input fields — the home game asks for amounts and names all night,
+ * and `modal()` only does text. `fields` is [{ id, label, type, value, ... }];
+ * `onSubmit` receives a { id: value } object and returning false keeps it open.
+ */
+function formModal({ title, fields, submitLabel = "Save", kind = "btn-primary", onSubmit, note }) {
+  $("modalTitle").textContent = title;
+  $("modalBody").innerHTML = `<div class="form-grid mform" style="text-align:left">
+    ${fields.map(f => `
+      <div class="field">
+        <label for="m_${f.id}">${esc(f.label)}</label>
+        ${f.money
+          ? `<div class="money-input"><span>$</span><input type="number" id="m_${f.id}" inputmode="decimal" step="0.01" min="0" value="${f.value ?? ""}" placeholder="${esc(f.placeholder || "0")}"></div>`
+          : `<input type="${f.type || "text"}" id="m_${f.id}" value="${esc(f.value ?? "")}" placeholder="${esc(f.placeholder || "")}" ${f.maxlength ? `maxlength="${f.maxlength}"` : ""} autocomplete="off">`}
+      </div>`).join("")}
+    ${note ? `<p class="note-row" style="margin:0">${note}</p>` : ""}
+  </div>`;
+  const wrap = $("modalBtns");
+  wrap.innerHTML = "";
+  const submit = async () => {
+    const vals = {};
+    for (const f of fields) vals[f.id] = $("m_" + f.id).value;
+    if (await onSubmit(vals) !== false) closeModal();
+  };
+  const go = document.createElement("button");
+  go.className = "btn " + kind;
+  go.textContent = submitLabel;
+  go.addEventListener("click", submit);
+  const cancel = document.createElement("button");
+  cancel.className = "btn btn-ghost";
+  cancel.textContent = "Cancel";
+  cancel.addEventListener("click", closeModal);
+  wrap.append(go, cancel);
+  $("modalBack").classList.add("open");
+  // Bind Enter on the freshly-built grid, not on #modalBody — that element
+  // survives every modal, so a listener there would stack up and fire stale
+  // submits against inputs that no longer exist.
+  $("modalBody").querySelector(".mform").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); submit(); }
+  });
+  const first = $("m_" + fields[0].id);
+  setTimeout(() => { first.focus(); first.select && first.select(); }, 50);
+}
 
 /* =====================================================================
    Auth screen
@@ -1295,6 +1666,25 @@ $("forgotBtn").addEventListener("click", async () => {
    ===================================================================== */
 if (backend.isMock) $("demoNote").hidden = false;
 
+// Someone followed the host's invite link. Hold the code across the sign-up
+// they're about to do — a new player's first act in this app is usually making
+// an account so they can sit down.
+{
+  const params = new URLSearchParams(location.search);
+  const invited = (params.get("game") || "").trim().toUpperCase();
+  if (/^[A-Z0-9]{6}$/.test(invited)) {
+    pendingJoinCode = invited;
+    $("inviteNote").textContent = `You've been invited to a home game (code ${invited}). Sign in or create an account to take your seat.`;
+    $("inviteNote").hidden = false;
+    setAuthMode("up");
+    // Drop just the invite so a later refresh doesn't rejoin — anything else on
+    // the URL (?demo) has to survive.
+    params.delete("game");
+    const q = params.toString();
+    history.replaceState(null, "", location.pathname + (q ? "?" + q : ""));
+  }
+}
+
 backend.onAuth(async (user) => {
   ME = user;
   $("splash").hidden = true;
@@ -1321,6 +1711,19 @@ backend.onAuth(async (user) => {
     pushStats();
   });
   syncLeagueSubs();
+  restoreTimer();
+
+  // An invite link beats whatever game was last open; otherwise pick up where
+  // this device left off.
+  if (pendingJoinCode) {
+    const code = pendingJoinCode;
+    pendingJoinCode = null;
+    showView("home");
+    await joinGameFlow(code);
+    return;
+  }
+  const saved = localStorage.getItem(gameKey());
+  if (saved) subscribeGame(saved);
   showView("dash");
 });
 
@@ -1328,13 +1731,15 @@ function cleanup() {
   unsubSessions && unsubSessions(); unsubSessions = null;
   for (const u of leagueSubs.values()) u();
   leagueSubs.clear(); leagueData.clear(); statsHealed.clear();
+  unsubGame && unsubGame(); unsubGame = null;
+  gameData = null; activeGame = null; settleView = false;
   sessions = []; profile = null; activeLeague = null; leagueFormMode = null; lastPushedStats = "";
 }
 
 /* =====================================================================
    Tabs & rendering
    ===================================================================== */
-const VIEW_TITLES = { dash: "Dashboard", sessions: "Sessions", add: "Log session", league: "League", stats: "Stats" };
+const VIEW_TITLES = { dash: "Dashboard", sessions: "Sessions", add: "Log session", home: "Home game", league: "League", stats: "Stats" };
 let activeView = "dash";
 function showView(name) {
   activeView = name;
@@ -1349,6 +1754,7 @@ function showView(name) {
 function renderActive() {
   if (activeView === "dash") renderDash();
   if (activeView === "sessions") renderSessions();
+  if (activeView === "home") renderHome();
   if (activeView === "league") renderLeague();
   if (activeView === "stats") renderStats();
 }
@@ -1616,6 +2022,41 @@ function resetForm() {
   $("deleteBtn").hidden = true;
   $("cancelEditBtn").hidden = true;
   refreshDatalists();
+  renderHandsCard(pendingTimer ? pendingTimer.hands : []);
+}
+
+/**
+ * The hands logged during a session, shown while you're reviewing it — either
+ * a timer you just finished or an old session you tapped into.
+ */
+function renderHandsCard(hands) {
+  const card = $("handsCard");
+  if (!hands || !hands.length) { card.hidden = true; return; }
+  card.hidden = false;
+  $("handsList").innerHTML = hands.map((h) => {
+    const eq = h.equity && h.equity.length ? `${h.equity[0].toFixed(1)}% to win` : "";
+    const cards = (h.hero || []).map(c => {
+      const s = parseCard(c);
+      return `<span class="pcard ${SUIT_IS_RED[s & 3] ? "red" : ""}" style="height:26px;min-width:22px;font-size:12.5px">${cardLabel(s)}</span>`;
+    }).join("");
+    const board = (h.board || []).map(c => {
+      const s = parseCard(c);
+      return `<span class="pcard ${SUIT_IS_RED[s & 3] ? "red" : ""}" style="height:22px;min-width:18px;font-size:11px">${cardLabel(s)}</span>`;
+    }).join("");
+    const res = h.result === null || h.result === undefined || h.result === ""
+      ? "" : `<div class="pamt"><div class="big ${plClass(h.result)}">${fmtSigned(h.result)}</div></div>`;
+    return `
+      <div class="hand-row">
+        <div class="hmain">
+          <div class="hand-cards">${cards}<span class="eq-note" style="margin-left:4px">${esc(h.position || "")}</span></div>
+          <div class="hsub">
+            ${board ? `<span class="hand-cards" style="display:inline-flex;vertical-align:middle;gap:3px">${board}</span> · ` : ""}
+            ${eq}${h.note ? " · " + esc(h.note) : ""}
+          </div>
+        </div>
+        ${res}
+      </div>`;
+  }).join("");
 }
 
 function startEdit(id) {
@@ -1637,6 +2078,7 @@ function startEdit(id) {
   $("fFee").value = s.hourlyFee || "";
   $("fNotes").value = s.notes || "";
   updateLiveProfit();
+  renderHandsCard(s.hands);
   $("formTitle").textContent = "Edit session";
   $("saveBtn").textContent = "Save changes";
   $("deleteBtn").hidden = false;
@@ -1683,6 +2125,9 @@ $("sessForm").addEventListener("submit", async (e) => {
     if (canon) location = canon;
   }
   const existing = editingId ? sessions.find(s => s.id === editingId) : null;
+  // A finished timer carries the wall-clock stamps and the hands logged during
+  // it. Editing an old session keeps whatever that session already had.
+  const carry = existing || pendingTimer || {};
   const rec = {
     id: editingId || uuid(),
     createdAt: existing?.createdAt || Date.now(),
@@ -1696,8 +2141,12 @@ $("sessForm").addEventListener("submit", async (e) => {
     cashOut: r2(cashOut),
     hourlyFee,
     notes: $("fNotes").value.trim(),
+    startedAt: carry.startedAt ?? null,
+    endedAt: carry.endedAt ?? null,
+    hands: carry.hands || [],
   };
   await backend.putSession(ME.uid, rec);
+  pendingTimer = null;
   toast(editingId ? "Session updated" : `Saved · ${fmtSigned(r2(profitOf(rec)))}`);
   editingId = null;
   showView("sessions");
@@ -1721,6 +2170,82 @@ const GROUPERS = {
 };
 const GROUP_COL = { stakes: "Stakes", game: "Game", location: "Location" };
 
+/* ---------- date range filter ---------- */
+const RANGES = [
+  { id: "30", label: "30 days" },
+  { id: "90", label: "90 days" },
+  { id: "ytd", label: "This year" },
+  { id: "all", label: "All time" },
+];
+
+/** ISO date on or after which a session counts, or null for everything. */
+function rangeStart() {
+  const now = new Date();
+  if (statsRange === "ytd") return `${now.getFullYear()}-01-01`;
+  const days = parseInt(statsRange, 10);
+  if (!Number.isFinite(days)) return null;
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+const inRange = () => {
+  const from = rangeStart();
+  return from ? sessions.filter(s => s.date >= from) : sessions;
+};
+
+/**
+ * Downswing depth: how far below the previous high-water mark the bankroll
+ * ran, session by session. This is the number that tells you whether a losing
+ * stretch was normal variance or something worth worrying about.
+ */
+function drawdownSeries(list) {
+  const chron = [...list].sort((a, b) =>
+    a.date === b.date ? (a.createdAt || 0) - (b.createdAt || 0) : (a.date < b.date ? -1 : 1));
+  let cum = 0, peak = 0, worst = 0;
+  const pts = chron.map(s => {
+    cum = r2(cum + profitOf(s));
+    peak = Math.max(peak, cum);
+    const dd = r2(cum - peak);
+    worst = Math.min(worst, dd);
+    return { date: s.date, cum, dd };
+  });
+  return { pts, worst, current: pts.length ? pts[pts.length - 1].dd : 0 };
+}
+
+/** Population standard deviation of per-session results. */
+function stdDev(list) {
+  if (list.length < 2) return 0;
+  const vals = list.map(profitOf);
+  const mean = vals.reduce((t, v) => t + v, 0) / vals.length;
+  return Math.sqrt(vals.reduce((t, v) => t + (v - mean) ** 2, 0) / vals.length);
+}
+
+/** Horizontal +/- bars sharing one scale, for the by-day and by-hour cuts. */
+function barsHTML(rows) {
+  const mag = Math.max(1, ...rows.map(r => Math.abs(r.net)));
+  return `<div class="bars">${rows.map(r => {
+    const w = (Math.abs(r.net) / mag) * 50; // half-width each side of centre
+    return `
+      <div class="bar-row">
+        <span class="k">${esc(r.label)}</span>
+        <div class="track">
+          <span class="zero" style="left:50%"></span>
+          <i class="${r.net >= 0 ? "win" : "loss"}" style="${r.net >= 0
+            ? `left:50%;width:${w}%` : `right:50%;width:${w}%`}"></i>
+        </div>
+        <span class="v ${plClass(r.net)}">${r.count ? fmtSigned(r2(r.net)) : "—"}</span>
+      </div>`;
+  }).join("")}</div>`;
+}
+
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const TIME_BUCKETS = [
+  { label: "6a–12p", from: 6, to: 12 },
+  { label: "12p–5p", from: 12, to: 17 },
+  { label: "5p–9p", from: 17, to: 21 },
+  { label: "9p–1a", from: 21, to: 25 },
+  { label: "1a–6a", from: 25, to: 30 },
+];
+
 function renderStats() {
   const el = $("statsContent");
   if (!sessions.length) {
@@ -1729,17 +2254,35 @@ function renderStats() {
       Stats appear once you've logged a session.</div></div>`;
     return;
   }
+
+  const list = inRange();
+  const rangeCard = `
+    <div class="card">
+      <h2>Show me</h2>
+      <div class="seg range-seg" role="group" aria-label="Date range">
+        ${RANGES.map(r => `<button type="button" data-range="${r.id}" aria-pressed="${statsRange === r.id}">${r.label}</button>`).join("")}
+      </div>
+      ${list.length !== sessions.length
+        ? `<p class="note-row" style="margin:10px 0 0">${list.length} of ${sessions.length} sessions.</p>` : ""}
+    </div>`;
+
+  if (!list.length) {
+    el.innerHTML = rangeCard + `<div class="card"><div class="empty">Nothing logged in that window.</div></div>`;
+    bindStatsRange();
+    return;
+  }
+
   const keyFn = GROUPERS[statsGroup];
   const groups = new Map();
-  for (const s of sessions) {
+  for (const s of list) {
     const k = keyFn(s);
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push(s);
   }
   const rows = [...groups.entries()]
-    .map(([k, list]) => ({ k, a: aggregate(list) }))
+    .map(([k, l]) => ({ k, a: aggregate(l) }))
     .sort((r1, r2) => r2.a.net - r1.a.net);
-  const total = aggregate(sessions);
+  const total = aggregate(list);
 
   const row = (name, a, cls = "") => `
     <tr class="${cls}">
@@ -1750,7 +2293,30 @@ function renderStats() {
       <td><span class="${plClass(a.hourly)}">${a.hours > 0 ? fmtSigned(r2(a.hourly)) : "—"}</span></td>
     </tr>`;
 
-  el.innerHTML = `
+  const dd = drawdownSeries(list);
+  const sd = stdDev(list);
+  const biggestWin = Math.max(0, ...list.map(profitOf));
+  const biggestLoss = Math.min(0, ...list.map(profitOf));
+
+  const byDay = DAY_NAMES.map((label, i) => {
+    const l = list.filter(s => parseDate(s.date).getDay() === i);
+    return { label, net: l.reduce((t, s) => t + profitOf(s), 0), count: l.length };
+  });
+
+  // Time of day needs a real start time, which only the timer records — older
+  // sessions simply aren't in this cut, and the card says so rather than
+  // pretending a missing hour is midnight.
+  const timed = list.filter(s => s.startedAt);
+  const byTime = TIME_BUCKETS.map(b => {
+    const l = timed.filter(s => {
+      const h = new Date(s.startedAt).getHours();
+      const shifted = h < 6 ? h + 24 : h; // small hours belong to the night before
+      return shifted >= b.from && shifted < b.to;
+    });
+    return { label: b.label, net: l.reduce((t, s) => t + profitOf(s), 0), count: l.length };
+  });
+
+  el.innerHTML = rangeCard + `
     <div class="card">
       <h2>Results by ${GROUP_COL[statsGroup].toLowerCase()}</h2>
       <div class="table-scroll">
@@ -1762,7 +2328,72 @@ function renderStats() {
           </tbody>
         </table>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>Swings</h2>
+      <div class="tiles">
+        <div class="tile"><div class="t-label">Worst downswing</div><div class="t-value loss">${dd.worst < 0 ? fmtSigned(dd.worst) : "—"}</div></div>
+        <div class="tile"><div class="t-label">Right now</div><div class="t-value ${dd.current < 0 ? "loss" : ""}">${dd.current < 0 ? fmtSigned(dd.current) : "At a high"}</div></div>
+        <div class="tile"><div class="t-label">Per-session SD</div><div class="t-value">${fmtMoney(r2(sd))}</div></div>
+      </div>
+      <div class="chart-wrap" id="ddWrap" style="margin-top:12px"></div>
+      <p class="note-row" style="margin:10px 0 0">
+        How far under your best-ever bankroll you were after each session. Best session ${fmtSigned(r2(biggestWin))}, worst ${fmtSigned(r2(biggestLoss))}.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>By day of the week</h2>
+      ${barsHTML(byDay)}
+    </div>
+
+    <div class="card">
+      <h2>By time of day</h2>
+      ${timed.length
+        ? barsHTML(byTime) + `<p class="note-row" style="margin:10px 0 0">From ${timed.length} timed session${timed.length === 1 ? "" : "s"}.</p>`
+        : `<div class="empty">Nothing to show yet — this needs the session clock. Start it when you sit down and these fill in.</div>`}
     </div>`;
+
+  drawDrawdown($("ddWrap"), dd.pts);
+  bindStatsRange();
+}
+
+function bindStatsRange() {
+  $("statsContent").querySelectorAll("[data-range]").forEach(b =>
+    b.addEventListener("click", () => { statsRange = b.dataset.range; renderStats(); }));
+}
+
+/** Underwater curve: 0 at every new high, dipping to the depth of each slump. */
+function drawDrawdown(wrap, pts) {
+  if (!wrap || !pts.length) return;
+  const W = 360, H = 130, padL = 44, padR = 14, padT = 10, padB = 22;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  const lo = Math.min(-1, ...pts.map(p => p.dd));
+  const ticks = niceTicks(lo, 0, 3);
+  const bLo = Math.min(lo, ...ticks), bHi = 0;
+  const x = (i) => pts.length === 1 ? padL + iw / 2 : padL + (i / (pts.length - 1)) * iw;
+  const y = (v) => padT + (1 - (v - bLo) / ((bHi - bLo) || 1)) * ih;
+
+  let grid = "", labels = "";
+  for (const t of ticks) {
+    if (t > 0) continue;
+    grid += `<line x1="${padL}" x2="${W - padR}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)" stroke-width="1"/>`;
+    labels += `<text x="${padL - 6}" y="${y(t) + 3.5}" text-anchor="end" font-size="10" fill="var(--muted)">${fmtAxis(t)}</text>`;
+  }
+  const d = pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.dd).toFixed(1)}`).join(" ");
+  const area = pts.length > 1
+    ? d + ` L${x(pts.length - 1).toFixed(1)},${y(0).toFixed(1)} L${x(0).toFixed(1)},${y(0).toFixed(1)} Z` : "";
+
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Drawdown from peak bankroll across ${pts.length} sessions">
+      ${grid}${labels}
+      ${area ? `<path d="${area}" fill="var(--loss)" opacity="0.14"/>` : ""}
+      ${pts.length > 1 ? `<path d="${d}" fill="none" stroke="var(--loss)" stroke-width="1.8" stroke-linejoin="round"/>` : ""}
+      <line x1="${padL}" x2="${W - padR}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)" stroke-width="1" opacity="0.6"/>
+      <text x="${padL}" y="${H - 6}" font-size="10" fill="var(--muted)">${esc(fmtDateShort(pts[0].date))}</text>
+      <text x="${W - padR}" y="${H - 6}" text-anchor="end" font-size="10" fill="var(--muted)">${esc(fmtDateShort(pts[pts.length - 1].date))}</text>
+    </svg>`;
 }
 
 /* =====================================================================
@@ -1782,7 +2413,9 @@ function buildStatsDoc() {
     nickname: profile.nickname,
     allTime: { net: r2(a.net), hours: r2(a.hours), sessions: a.count },
     weeks,
-    // shared with leaguemates — deliberately NO notes and no ids
+    // Shared with leaguemates — deliberately NO notes and no ids, and no
+    // `hands`: a hand history says how you play, which is nobody's business
+    // but yours. Same line already drawn for notes.
     sessions: sorted().slice(-150).map(s => ({
       date: s.date, location: s.location, gameType: s.gameType, game: s.game,
       stakes: s.stakes, durationMinutes: s.durationMinutes,
@@ -2146,6 +2779,1032 @@ async function joinLeagueFlow() {
 }
 
 /* =====================================================================
+   Live session timer
+
+   Ported from the native build. The whole point is that you start it when you
+   sit down and forget about it, so it has to survive the app being
+   backgrounded, killed, or the phone dying and being plugged back in. That
+   means persisting a wall-clock start time rather than counting ticks —
+   elapsed is always *derived* from Date.now(), never accumulated, so a
+   suspended app doesn't quietly lose an hour.
+   ===================================================================== */
+const TIMER_KEY = "bankroll.runningSession.v1";
+let running = null;      // { startedAt, bankedMs, pausedAt, location, stakes, hands }
+let timerTick = null;
+let pendingTimer = null; // finished timer waiting to be attached to a saved session
+
+const elapsedMs = (r) =>
+  r.bankedMs + (r.pausedAt === null ? Date.now() - r.startedAt : r.pausedAt - r.startedAt);
+
+const fmtClock = (ms) => {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+};
+
+function persistTimer(r) {
+  running = r;
+  if (r) localStorage.setItem(TIMER_KEY, JSON.stringify(r));
+  else localStorage.removeItem(TIMER_KEY);
+  renderTimer();
+}
+
+function restoreTimer() {
+  try {
+    const raw = localStorage.getItem(TIMER_KEY);
+    running = raw ? JSON.parse(raw) : null;
+  } catch {
+    // Corrupt entry — better to start clean than to fail the whole boot.
+    localStorage.removeItem(TIMER_KEY);
+    running = null;
+  }
+  renderTimer();
+}
+
+function renderTimer() {
+  const bar = $("timerBar");
+  bar.hidden = !running;
+  if (timerTick) { clearInterval(timerTick); timerTick = null; }
+  if (!running) {
+    if ($("startCard")) renderStartCard();
+    return;
+  }
+  const paused = running.pausedAt !== null;
+  bar.classList.toggle("paused", paused);
+  $("timerPulse").style.visibility = paused ? "hidden" : "visible";
+  $("timerPauseBtn").textContent = paused ? "Resume" : "Pause";
+  const meta = [running.location, running.stakes, `${running.hands.length} hand${running.hands.length === 1 ? "" : "s"}`]
+    .filter(Boolean).join(" · ");
+  $("timerMeta").textContent = paused ? "Paused · " + meta : meta;
+  const paint = () => { $("timerClock").textContent = fmtClock(elapsedMs(running)); };
+  paint();
+  if (!paused) timerTick = setInterval(paint, 1000);
+  renderStartCard();
+}
+
+function renderStartCard() {
+  const card = $("startCard");
+  if (!card) return;
+  if (!running) {
+    card.innerHTML = `
+      <h2>Playing right now?</h2>
+      <p class="note-row" style="margin:0 0 12px">Start the clock and it keeps time in the background — close the app, let the phone die, the time is still right. You can log hands as they happen.</p>
+      <button type="button" class="btn btn-primary" id="startTimerBtn">Start the clock</button>`;
+    $("startTimerBtn").addEventListener("click", startTimerFlow);
+  } else {
+    card.innerHTML = `
+      <h2>Clock is running</h2>
+      <p class="note-row" style="margin:0">Finish the session from the bar at the top and this form fills itself in — hours, location, stakes and every hand you logged.</p>`;
+  }
+}
+
+function startTimerFlow() {
+  const locSel = $("fLocation").value;
+  const loc = locSel === OTHER_LOC ? $("fLocationOther").value.trim() : locSel;
+  formModal({
+    title: "Start the clock",
+    fields: [
+      { id: "loc", label: "Where", value: loc || "", placeholder: "e.g. Texas Card House", maxlength: 40 },
+      { id: "stakes", label: "Stakes", value: $("fStakes").value.trim(), placeholder: "e.g. 1/2", maxlength: 20 },
+    ],
+    submitLabel: "Start",
+    onSubmit: (v) => {
+      persistTimer({
+        startedAt: Date.now(), bankedMs: 0, pausedAt: null,
+        location: v.loc.trim(), stakes: v.stakes.trim(), hands: [],
+      });
+      toast("Clock running — good luck");
+    },
+  });
+}
+
+$("timerPauseBtn").addEventListener("click", () => {
+  if (!running) return;
+  if (running.pausedAt === null) {
+    persistTimer({ ...running, pausedAt: Date.now() });
+  } else {
+    // Rebase: bank what the last segment was worth and restart from now.
+    persistTimer({
+      ...running,
+      bankedMs: running.bankedMs + (running.pausedAt - running.startedAt),
+      startedAt: Date.now(),
+      pausedAt: null,
+    });
+  }
+});
+
+$("timerHandBtn").addEventListener("click", () => openHandSheet());
+
+$("timerStopBtn").addEventListener("click", () => {
+  if (!running) return;
+  const mins = Math.max(1, Math.round(elapsedMs(running) / 60000));
+  modal(`Finish after ${fmtDur(mins)}?`,
+    running.hands.length
+      ? `${running.hands.length} hand${running.hands.length === 1 ? "" : "s"} logged. We'll fill in the session form — you add the money.`
+      : "We'll fill in the session form — you add the money.",
+    [
+      { label: "Finish up", kind: "btn-primary", onClick: () => finishTimer(mins) },
+      { label: "Discard the session", kind: "btn-danger", onClick: () => {
+        modal("Throw away the clock?", "The time and any hands you logged go with it.", [
+          { label: "Throw it away", kind: "btn-danger", onClick: () => { persistTimer(null); toast("Discarded"); } },
+          { label: "Keep it running", kind: "btn-ghost" },
+        ]);
+      }},
+      { label: "Keep playing", kind: "btn-ghost" },
+    ]);
+});
+
+function finishTimer(mins) {
+  const r = running;
+  const started = r.bankedMs > 0 || r.pausedAt !== null ? r.startedAt - r.bankedMs : r.startedAt;
+  pendingTimer = { startedAt: started, endedAt: Date.now(), hands: r.hands };
+  persistTimer(null);
+
+  editingId = null;
+  showView("add"); // resets the form, so everything below has to come after
+  $("fDate").value = todayISO();
+  $("fHours").value = Math.floor(mins / 60);
+  $("fMinutes").value = mins % 60;
+  if (r.location) {
+    const canon = locationChoices().find(l => l.toLowerCase() === r.location.toLowerCase());
+    refreshLocationOptions(canon || OTHER_LOC);
+    if (!canon) $("fLocationOther").value = r.location;
+    syncLocOther();
+  }
+  if (r.stakes) $("fStakes").value = r.stakes;
+  updateLiveProfit();
+  toast(`${fmtDur(mins)} logged — add your buy-in and cash-out`);
+}
+
+/* =====================================================================
+   Hand logger
+
+   Records a hand as it happened — your seat, your cards, the board, and
+   whatever you saw of anyone else's — and puts a real win percentage next to
+   every hand. Opponents you never saw are simulated as a random hand, so the
+   hand where he folded to your river shove is still worth logging.
+   ===================================================================== */
+const POSITIONS = {
+  9: ["UTG", "UTG+1", "UTG+2", "MP", "HJ", "CO", "BTN", "SB", "BB"],
+  8: ["UTG", "UTG+1", "MP", "HJ", "CO", "BTN", "SB", "BB"],
+  6: ["UTG", "MP", "CO", "BTN", "SB", "BB"],
+  2: ["BTN/SB", "BB"],
+};
+const STREET_NAMES = ["Preflop", "Flop", "Turn", "River"];
+
+let hand = null;      // the hand being built
+let pickTarget = null; // { kind: "hero"|"board"|"villain", i, j } slot awaiting a card
+let eqTimer = null;
+
+const blankHand = () => ({
+  id: uuid(),
+  at: Date.now(),
+  tableSize: 9,
+  position: "BTN",
+  hero: [null, null],
+  board: [null, null, null, null, null],
+  villains: [{ position: "", cards: [null, null] }],
+  result: "",
+  note: "",
+  equity: null,
+});
+
+function openHandSheet(existing) {
+  hand = existing ? JSON.parse(JSON.stringify(existing)) : blankHand();
+  pickTarget = { kind: "hero", j: 0 };
+  $("handSheet").hidden = false;
+  renderHandSheet();
+}
+function closeHandSheet() {
+  $("handSheet").hidden = true;
+  hand = null;
+  pickTarget = null;
+  if (eqTimer) { clearTimeout(eqTimer); eqTimer = null; }
+}
+$("handCloseBtn").addEventListener("click", closeHandSheet);
+$("handSheet").addEventListener("click", (e) => { if (e.target === $("handSheet")) closeHandSheet(); });
+
+/** Every card already placed anywhere in the hand — can't be dealt twice. */
+function usedCards() {
+  const out = new Set();
+  const add = (c) => { if (c) out.add(c); };
+  hand.hero.forEach(add);
+  hand.board.forEach(add);
+  hand.villains.forEach(v => v.cards.forEach(add));
+  return out;
+}
+
+const cardChip = (c, sel, attrs) => {
+  if (!c) return `<button type="button" class="pcard slot ${sel ? "sel" : ""}" ${attrs}>?</button>`;
+  const s = parseCard(c);
+  return `<button type="button" class="pcard ${SUIT_IS_RED[s & 3] ? "red" : ""} ${sel ? "sel" : ""}" ${attrs}>${cardLabel(s)}</button>`;
+};
+
+const targetIs = (kind, j, i) =>
+  pickTarget && pickTarget.kind === kind && pickTarget.j === j && (i === undefined || pickTarget.i === i);
+
+function renderHandSheet() {
+  const positions = POSITIONS[hand.tableSize];
+  if (!positions.includes(hand.position)) hand.position = positions[positions.length - 3] || positions[0];
+  const boardCount = hand.board.filter(Boolean).length;
+
+  $("handBody").innerHTML = `
+    <div class="field">
+      <label id="tsLbl">Table</label>
+      <div class="seg" role="group" aria-labelledby="tsLbl">
+        ${[9, 8, 6, 2].map(n => `<button type="button" data-ts="${n}" aria-pressed="${hand.tableSize === n}">${n === 2 ? "Heads up" : n + "-handed"}</button>`).join("")}
+      </div>
+    </div>
+
+    <div class="field">
+      <label id="posLbl">You were in</label>
+      <div class="seg" style="flex-wrap:wrap" role="group" aria-labelledby="posLbl">
+        ${positions.map(p => `<button type="button" data-pos="${p}" aria-pressed="${hand.position === p}">${p}</button>`).join("")}
+      </div>
+    </div>
+
+    <div class="seat hero">
+      <div class="seat-head">
+        <div class="lbl">Your hand</div>
+        <div class="eq-pct" id="eqHero">—</div>
+      </div>
+      <div class="hand-cards">
+        ${hand.hero.map((c, j) => cardChip(c, targetIs("hero", j), `data-slot="hero" data-j="${j}"`)).join("")}
+      </div>
+      <div class="eqbar"><i id="eqHeroBar" style="width:0%"></i></div>
+      <div class="eq-note" id="eqHeroNote"></div>
+    </div>
+
+    <div class="field">
+      <label>Board <span style="font-weight:400;color:var(--muted)">(${boardCount ? STREET_NAMES[Math.max(0, boardCount - 2)] : "preflop"})</span></label>
+      <div class="hand-cards">
+        ${hand.board.map((c, j) => `${j === 3 || j === 4 ? '<span style="width:6px"></span>' : ""}${cardChip(c, targetIs("board", j), `data-slot="board" data-j="${j}"`)}`).join("")}
+      </div>
+    </div>
+
+    ${hand.villains.map((v, i) => `
+      <div class="seat">
+        <div class="seat-head">
+          <div class="lbl">Opponent ${i + 1}${v.position ? " · " + esc(v.position) : ""}</div>
+          <div class="eq-pct" id="eqV${i}">—</div>
+          <button type="button" class="btn-sm" data-drop="${i}" aria-label="Remove opponent ${i + 1}">✕</button>
+        </div>
+        <div class="hand-cards">
+          ${v.cards.map((c, j) => cardChip(c, targetIs("villain", j, i), `data-slot="villain" data-i="${i}" data-j="${j}"`)).join("")}
+          ${v.cards.some(Boolean) ? `<button type="button" class="btn-sm" data-muck="${i}">Never saw it</button>` : `<span class="eq-note">Unknown — played as a random hand</span>`}
+        </div>
+        <div class="eqbar"><i id="eqV${i}Bar" style="width:0%"></i></div>
+      </div>`).join("")}
+
+    ${hand.villains.length < 5 ? `<button type="button" class="btn btn-ghost" id="addVillainBtn">Add another opponent</button>` : ""}
+
+    <div class="card" style="padding:12px" id="pickerCard">
+      <h2 id="pickerLbl">Tap a card</h2>
+      <div id="pickerBody"></div>
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label for="hResult">Won / lost <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+        <div class="money-input"><span>$</span><input type="number" id="hResult" step="0.01" inputmode="decimal" value="${esc(hand.result)}" placeholder="0"></div>
+      </div>
+      <div class="field">
+        <label for="hNote">Note</label>
+        <input type="text" id="hNote" value="${esc(hand.note)}" placeholder="e.g. 3-bet pot, he snapped" maxlength="80" autocomplete="off">
+      </div>
+    </div>`;
+
+  renderPicker();
+  bindHandSheet();
+  scheduleEquity();
+}
+
+function renderPicker() {
+  const used = usedCards();
+  const label = !pickTarget ? "Tap a card slot above"
+    : pickTarget.kind === "hero" ? `Your card ${pickTarget.j + 1}`
+    : pickTarget.kind === "board" ? `Board card ${pickTarget.j + 1}`
+    : `Opponent ${pickTarget.i + 1} · card ${pickTarget.j + 1}`;
+  $("pickerLbl").textContent = label;
+  $("pickerBody").innerHTML = SUIT_CHARS.split("").map((sc, s) => `
+    <div class="picker-suit">${SUIT_SYMBOLS[s]}</div>
+    <div class="picker-grid">
+      ${RANK_CHARS.split("").map((rc, r) => {
+        const code = rc + sc;
+        const taken = used.has(code);
+        return `<button type="button" class="${SUIT_IS_RED[s] ? "red" : ""}" data-card="${code}" ${taken ? "disabled" : ""}>${rc}</button>`;
+      }).join("")}
+    </div>`).join("");
+  $("pickerBody").querySelectorAll("[data-card]").forEach(b =>
+    b.addEventListener("click", () => placeCard(b.dataset.card)));
+}
+
+function placeCard(code) {
+  if (!pickTarget) return;
+  const t = pickTarget;
+  if (t.kind === "hero") hand.hero[t.j] = code;
+  else if (t.kind === "board") hand.board[t.j] = code;
+  else hand.villains[t.i].cards[t.j] = code;
+  advanceTarget();
+  renderHandSheet();
+}
+
+/** Walk to the next empty slot so a whole hand can be entered without aiming. */
+function advanceTarget() {
+  const t = pickTarget;
+  if (t.kind === "hero") {
+    if (t.j === 0) return void (pickTarget = { kind: "hero", j: 1 });
+    pickTarget = { kind: "board", j: 0 };
+  } else if (t.kind === "board") {
+    pickTarget = t.j < 4 ? { kind: "board", j: t.j + 1 } : null;
+  } else {
+    pickTarget = t.j === 0 ? { kind: "villain", i: t.i, j: 1 } : null;
+  }
+}
+
+function bindHandSheet() {
+  const body = $("handBody");
+  body.querySelectorAll("[data-ts]").forEach(b => b.addEventListener("click", () => {
+    hand.tableSize = Number(b.dataset.ts);
+    renderHandSheet();
+  }));
+  body.querySelectorAll("[data-pos]").forEach(b => b.addEventListener("click", () => {
+    hand.position = b.dataset.pos;
+    renderHandSheet();
+  }));
+  body.querySelectorAll("[data-slot]").forEach(b => b.addEventListener("click", () => {
+    const kind = b.dataset.slot, j = Number(b.dataset.j), i = Number(b.dataset.i);
+    // Tapping a filled slot clears it; tapping an empty one aims the picker.
+    const cur = kind === "hero" ? hand.hero[j] : kind === "board" ? hand.board[j] : hand.villains[i].cards[j];
+    if (cur) {
+      if (kind === "hero") hand.hero[j] = null;
+      else if (kind === "board") hand.board[j] = null;
+      else hand.villains[i].cards[j] = null;
+    }
+    pickTarget = kind === "villain" ? { kind, i, j } : { kind, j };
+    renderHandSheet();
+  }));
+  body.querySelectorAll("[data-muck]").forEach(b => b.addEventListener("click", () => {
+    hand.villains[Number(b.dataset.muck)].cards = [null, null];
+    renderHandSheet();
+  }));
+  body.querySelectorAll("[data-drop]").forEach(b => b.addEventListener("click", () => {
+    hand.villains.splice(Number(b.dataset.drop), 1);
+    if (!hand.villains.length) hand.villains.push({ position: "", cards: [null, null] });
+    renderHandSheet();
+  }));
+  const add = $("addVillainBtn");
+  if (add) add.addEventListener("click", () => {
+    hand.villains.push({ position: "", cards: [null, null] });
+    pickTarget = { kind: "villain", i: hand.villains.length - 1, j: 0 };
+    renderHandSheet();
+  });
+  $("hResult").addEventListener("input", () => { hand.result = $("hResult").value; });
+  $("hNote").addEventListener("input", () => { hand.note = $("hNote").value; });
+}
+
+/**
+ * Equity is recomputed on a short delay: entering a hand means a burst of taps,
+ * and there's no sense running a hundred thousand simulations for a board state
+ * that only existed for 40 milliseconds.
+ */
+function scheduleEquity() {
+  if (eqTimer) clearTimeout(eqTimer);
+  eqTimer = setTimeout(computeEquity, 120);
+}
+
+function computeEquity() {
+  eqTimer = null;
+  if (!hand) return;
+  const heroCards = hand.hero.filter(Boolean);
+  const board = hand.board.filter(Boolean);
+  const setPct = (id, barId, txt, frac) => {
+    const el = $(id), bar = $(barId);
+    if (el) el.textContent = txt;
+    if (bar) bar.style.width = `${Math.round((frac || 0) * 100)}%`;
+  };
+
+  // A board of one or two cards is a half-entered flop, not a real street.
+  const badBoard = board.length === 1 || board.length === 2;
+  if (heroCards.length !== 2 || badBoard) {
+    setPct("eqHero", "eqHeroBar", "—", 0);
+    hand.villains.forEach((_, i) => setPct(`eqV${i}`, `eqV${i}Bar`, "—", 0));
+    $("eqHeroNote").textContent = heroCards.length !== 2
+      ? "Pick your two cards to see the odds."
+      : "A board is 3, 4 or 5 cards.";
+    hand.equity = null;
+    return;
+  }
+
+  const hands = [hand.hero.map(c => parseCard(c))];
+  for (const v of hand.villains) {
+    const known = v.cards.filter(Boolean);
+    hands.push(known.length === 2 ? known.map(c => parseCard(c)) : null);
+  }
+  const r = equity(hands, board.map(c => parseCard(c)));
+  hand.equity = r.results.map(x => r2(x.equity * 100));
+
+  const pct = (x) => `${(x.equity * 100).toFixed(1)}%`;
+  setPct("eqHero", "eqHeroBar", pct(r.results[0]), r.results[0].equity);
+  hand.villains.forEach((_, i) => setPct(`eqV${i}`, `eqV${i}Bar`, pct(r.results[i + 1]), r.results[i + 1].equity));
+
+  const made = board.length === 5
+    ? handName(evaluate([...hand.hero, ...board].map(c => parseCard(c))))
+    : null;
+  const how = r.trials === 1 ? "all five cards are out — this is what happened"
+    : r.exact ? `exact — every one of ${r.trials.toLocaleString("en-US")} runouts`
+    : `${r.trials.toLocaleString("en-US")} simulated runouts`;
+  $("eqHeroNote").textContent = made ? `${made} · ${how}` : how;
+}
+
+$("handSaveBtn").addEventListener("click", () => {
+  if (hand.hero.filter(Boolean).length !== 2) return toast("Pick your two cards");
+  if (!running) return toast("The clock isn't running");
+  const rec = {
+    ...hand,
+    hero: hand.hero.filter(Boolean),
+    board: hand.board.filter(Boolean),
+    villains: hand.villains
+      .filter(v => v.cards.some(Boolean) || hand.villains.length === 1)
+      .map(v => ({ position: v.position, cards: v.cards.filter(Boolean) })),
+    result: hand.result === "" ? null : r2(parseFloat(hand.result) || 0),
+    note: hand.note.trim(),
+  };
+  const i = running.hands.findIndex(h => h.id === rec.id);
+  if (i >= 0) running.hands[i] = rec; else running.hands.push(rec);
+  persistTimer(running);
+  closeHandSheet();
+  toast(`Hand saved — ${running.hands.length} this session`);
+});
+
+/* =====================================================================
+   Home game
+
+   One host, one code, one ledger. The host is the money authority — only
+   they write confirmed buy-ins and cash-outs — but anyone at the table can
+   follow the invite link, claim their seat, and submit what they think they
+   are in for. The host sees those claims as pending and either taps to
+   confirm or types over them. That way nobody's memory of the night is the
+   source of truth, and nobody has to shout numbers across the table either.
+   ===================================================================== */
+const gameLink = (code) => location.origin + location.pathname + "?game=" + code;
+const gBuyIn = (p) => (p.buyIns || []).reduce((t, b) => t + b, 0);
+const gNet = (p) => r2((p.cashOut ?? 0) - gBuyIn(p));
+const isHost = () => !!gameData && ME && gameData.game.hostUid === ME.uid;
+const myPlayer = () => gameData?.players.find(p => p.id === ME?.uid) || null;
+/** Settled games are read-only history; live ones can still be edited. */
+const gameLive = () => gameData?.game.status === "live";
+
+function sortedPlayers() {
+  return [...(gameData?.players || [])].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+}
+
+function subscribeGame(code) {
+  if (unsubGame) { unsubGame(); unsubGame = null; }
+  activeGame = code;
+  gameData = null;
+  if (code) localStorage.setItem(gameKey(), code);
+  else localStorage.removeItem(gameKey());
+  if (!code) { renderHomeIfActive(); return; }
+  unsubGame = backend.subGame(code, (data) => {
+    // A game the host deleted, or a bad code out of localStorage: drop it
+    // rather than leaving the tab stuck on a spinner forever.
+    if (data === null && gameData === null) {
+      localStorage.removeItem(gameKey());
+      activeGame = null;
+      if (unsubGame) { unsubGame(); unsubGame = null; }
+    }
+    gameData = data;
+    renderHomeIfActive();
+  });
+}
+const renderHomeIfActive = () => { if (activeView === "home") renderHome(); };
+
+const HOST_CARD_HTML = `
+  <div class="card">
+    <h2>Host a home game</h2>
+    <div class="form-grid">
+      <div class="field"><label for="gName">What's the game?</label>
+        <input type="text" id="gName" maxlength="40" placeholder="e.g. Thursday at Mike's" autocomplete="off"></div>
+      <div class="two-col">
+        <div class="field"><label for="gDate">Date</label><input type="date" id="gDate"></div>
+        <div class="field"><label for="gStakes">Stakes</label>
+          <input type="text" id="gStakes" placeholder="e.g. 1/2" autocomplete="off"></div>
+      </div>
+      <button type="button" class="btn btn-primary" id="hostGameBtn">Start the game</button>
+    </div>
+  </div>`;
+
+const JOIN_GAME_HTML = `
+  <div class="card">
+    <h2>Someone sent you a code?</h2>
+    <div class="form-grid">
+      <div class="field"><label for="gJoinCode">Game code <span style="font-weight:400;color:var(--muted)">(6 characters, from the host)</span></label>
+        <input type="text" id="gJoinCode" maxlength="6" placeholder="e.g. K7M2XW" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:0.2em"></div>
+      <button type="button" class="btn btn-primary" id="joinGameBtn">Take a seat</button>
+    </div>
+  </div>`;
+
+function renderHome() {
+  const el = $("homeContent");
+
+  if (!activeGame) {
+    el.innerHTML = `
+      <div class="card"><div class="empty">
+        <div class="suits" aria-hidden="true">&spades; &hearts; &clubs; &diams;</div>
+        No game running.<br>Start one and the app keeps the ledger — then works out who pays who.
+      </div></div>
+      ${JOIN_GAME_HTML}
+      ${HOST_CARD_HTML}`;
+    $("gDate").value = todayISO();
+    $("hostGameBtn").addEventListener("click", hostGameFlow);
+    $("joinGameBtn").addEventListener("click", () => joinGameFlow($("gJoinCode").value));
+    return;
+  }
+
+  if (!gameData) {
+    el.innerHTML = `<div class="card"><div class="empty">Loading the game…</div></div>`;
+    return;
+  }
+
+  const { game } = gameData;
+  const players = sortedPlayers();
+  const host = isHost();
+  const mine = myPlayer();
+  const live = gameLive();
+  const settled = !live;
+
+  const totalIn = r2(players.reduce((t, p) => t + gBuyIn(p), 0));
+  const counted = players.filter(p => p.cashOut !== null && p.cashOut !== undefined);
+  const totalOut = r2(counted.reduce((t, p) => t + p.cashOut, 0));
+
+  const header = `
+    <div class="card">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:18px;font-weight:750">${esc(game.name)}</div>
+          <div class="note-row" style="margin-top:3px">
+            ${fmtDate(game.date)}${game.stakes ? " · " + esc(game.stakes) : ""} · hosted by ${esc(game.hostName)}
+          </div>
+        </div>
+        <span class="tag ${live ? "live" : ""}">${live ? "Live" : "Settled"}</span>
+      </div>
+      ${live ? `
+      <div class="invite" style="margin-top:12px">
+        <div class="grow">
+          <div class="note-row" style="margin:0 0 2px">Invite code</div>
+          <div class="code">${game.code}</div>
+        </div>
+        <button type="button" class="btn-sm accent" id="shareGameBtn">Send invite</button>
+        <button type="button" class="btn-sm" id="copyGameBtn">Copy link</button>
+      </div>
+      <p class="note-row" style="margin:10px 0 0">Text this to everyone playing. They make an account, take a seat, and show up here — you still confirm every dollar.</p>
+      ` : ""}
+      <div class="tiles" style="margin-top:12px">
+        <div class="tile"><div class="t-label">In play</div><div class="t-value">${fmtMoney(totalIn)}</div></div>
+        <div class="tile"><div class="t-label">Counted</div><div class="t-value">${fmtMoney(totalOut)}</div></div>
+        <div class="tile"><div class="t-label">Seats</div><div class="t-value">${players.length}</div></div>
+      </div>
+    </div>`;
+
+  const claims = host && live ? players.filter(p => p.claim) : [];
+  const claimCard = claims.length ? `
+    <div class="card">
+      <h2>Waiting on you</h2>
+      <div class="plist">
+        ${claims.map(p => {
+          const c = p.claim;
+          const cIn = (c.buyIns || []).reduce((t, b) => t + b, 0);
+          return `
+          <div class="prow">
+            <div class="pmain">
+              <div class="pname">${esc(p.name)} <span class="tag pending">Claimed</span></div>
+              <div class="psub">Says ${fmtMoney(cIn)} in${c.cashOut !== null && c.cashOut !== undefined ? ` · ${fmtMoney(c.cashOut)} out` : ""}</div>
+            </div>
+            <div class="pbtns">
+              <button type="button" class="btn-sm accent" data-confirm="${p.id}">Confirm</button>
+              <button type="button" class="btn-sm" data-reject="${p.id}">Dismiss</button>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>` : "";
+
+  const myCard = !host && mine ? myPlayerCardHTML(mine, live) : "";
+
+  const roster = `
+    <div class="card">
+      <h2>${settled ? "Final ledger" : "At the table"}</h2>
+      ${players.length ? `<div class="plist">${players.map(p => playerRowHTML(p, host, live)).join("")}</div>`
+        : `<div class="empty">Nobody's sat down yet. Add walk-ins yourself, or send the link.</div>`}
+      ${host && live ? `
+        <div class="backup-row" style="margin-top:12px">
+          <button type="button" class="btn btn-ghost" id="addGuestBtn">Add a player</button>
+          <button type="button" class="btn btn-primary" id="settleBtn">${settleView ? "Back to the game" : "End game &amp; settle"}</button>
+        </div>` : ""}
+    </div>`;
+
+  const settleCard = (settled || (host && settleView)) ? settleCardHTML(players, host, live) : "";
+
+  const footer = `
+    <div class="card">
+      <h2>This game</h2>
+      <div class="backup-row">
+        <button type="button" class="btn btn-ghost" id="leaveGameBtn">${host ? "Close this game" : "Leave the game"}</button>
+        ${settled && mine ? `<button type="button" class="btn btn-ghost" id="logSeatBtn">Log my seat as a session</button>` : ""}
+      </div>
+    </div>`;
+
+  el.innerHTML = header + claimCard + myCard + roster + settleCard + footer;
+  bindHome();
+}
+
+function playerRowHTML(p, host, live) {
+  const buy = gBuyIn(p);
+  const counted = p.cashOut !== null && p.cashOut !== undefined;
+  const net = gNet(p);
+  const isMe = ME && p.id === ME.uid;
+  return `
+    <div class="prow ${isMe ? "me" : ""}">
+      <div class="pmain">
+        <div class="pname">${esc(p.name)}${p.guest ? ` <span class="tag">Walk-in</span>` : ""}${p.claim && host ? ` <span class="tag pending">Claim</span>` : ""}</div>
+        <div class="psub">${fmtMoney(buy)} in${(p.buyIns || []).length > 1 ? ` · ${p.buyIns.length} buy-ins` : ""}${counted ? ` · ${fmtMoney(p.cashOut)} out` : ""}</div>
+      </div>
+      <div class="pamt">
+        ${counted
+          ? `<div class="big ${plClass(net)}">${fmtSigned(net)}</div>`
+          : `<div class="big">${fmtMoney(buy)}</div>`}
+      </div>
+      ${host && live ? `
+        <div class="pbtns">
+          <button type="button" class="btn-sm" data-rebuy="${p.id}" aria-label="Add a buy-in for ${esc(p.name)}">+ $</button>
+          <button type="button" class="btn-sm" data-edit="${p.id}" aria-label="Edit ${esc(p.name)}">Edit</button>
+        </div>` : ""}
+    </div>`;
+}
+
+/** What a player who isn't the host sees about their own seat. */
+function myPlayerCardHTML(p, live) {
+  const buy = gBuyIn(p);
+  const c = p.claim;
+  return `
+    <div class="card">
+      <h2>Your seat</h2>
+      <div class="tiles">
+        <div class="tile"><div class="t-label">Confirmed in</div><div class="t-value">${fmtMoney(buy)}</div></div>
+        <div class="tile"><div class="t-label">Counted out</div><div class="t-value">${p.cashOut !== null && p.cashOut !== undefined ? fmtMoney(p.cashOut) : "—"}</div></div>
+        <div class="tile"><div class="t-label">Net</div><div class="t-value ${plClass(gNet(p))}">${p.cashOut !== null && p.cashOut !== undefined ? fmtSigned(gNet(p)) : "—"}</div></div>
+      </div>
+      ${c ? `<p class="note-row" style="margin:12px 0 0">You've told the host ${fmtMoney((c.buyIns || []).reduce((t, b) => t + b, 0))} in${c.cashOut !== null && c.cashOut !== undefined ? ` and ${fmtMoney(c.cashOut)} out` : ""} — waiting on them to confirm.</p>` : ""}
+      ${live ? `<button type="button" class="btn btn-ghost" id="claimBtn" style="margin-top:12px">${c ? "Change what I told the host" : "Tell the host my numbers"}</button>` : ""}
+    </div>`;
+}
+
+function settleCardHTML(players, host, live) {
+  const counted = players.filter(p => p.cashOut !== null && p.cashOut !== undefined);
+  const uncounted = players.filter(p => p.cashOut === null || p.cashOut === undefined);
+
+  // Nobody can be settled against until every stack is counted — a missing
+  // cash-out isn't a zero, it's an unknown, and pretending otherwise would
+  // hand someone a bill for money they still have in front of them.
+  if (uncounted.length && live) {
+    return `
+      <div class="card">
+        <h2>Count the stacks</h2>
+        <p class="note-row" style="margin:0 0 12px">Enter what each player counted down. Everyone needs a number before the app can work out who pays who.</p>
+        <div class="plist">
+          ${players.map(p => `
+            <div class="prow ${p.cashOut === null || p.cashOut === undefined ? "" : "me"}">
+              <div class="pmain">
+                <div class="pname">${esc(p.name)}</div>
+                <div class="psub">${fmtMoney(gBuyIn(p))} in</div>
+              </div>
+              <div class="pamt"><div class="big">${p.cashOut === null || p.cashOut === undefined ? "—" : fmtMoney(p.cashOut)}</div></div>
+              <div class="pbtns"><button type="button" class="btn-sm accent" data-cash="${p.id}">Count</button></div>
+            </div>`).join("")}
+        </div>
+        <p class="note-row" style="margin:12px 0 0">${uncounted.length} still to count.</p>
+      </div>`;
+  }
+
+  const result = settleUp(players.map(p => ({
+    id: p.id, name: p.name, buyIns: p.buyIns || [], cashOut: p.cashOut || 0,
+  })));
+  const off = result.discrepancy;
+
+  return `
+    <div class="card">
+      <h2>Settle up</h2>
+      ${Math.abs(off) > 0.005 ? `
+        <div class="warn" style="margin-bottom:12px">
+          The table is ${off > 0 ? "over" : "short"} by ${fmtMoney(Math.abs(off))} —
+          ${fmtMoney(result.totalBuyIn)} went in and ${fmtMoney(result.totalCashOut)} came back out.
+          Recount before anyone pays; the payments below split the difference by luck, not by right.
+        </div>` : ""}
+      ${result.payments.length ? `
+        <div class="pay-list">
+          ${result.payments.map(p => `
+            <div class="pay ${ME && (p.fromId === ME.uid || p.toId === ME.uid) ? "mine" : ""}">
+              <div class="who">${esc(p.fromName)} <span class="arrow">→</span> ${esc(p.toName)}</div>
+              <div class="amt">${fmtMoney(p.amount)}</div>
+            </div>`).join("")}
+        </div>
+        <p class="note-row" style="margin:12px 0 0">${result.payments.length} payment${result.payments.length === 1 ? "" : "s"} instead of ${Math.max(0, (players.length - 1) * 2)}. Everyone settles with the fewest hand-offs.</p>`
+        : `<div class="empty">Everyone's even — nothing to settle.</div>`}
+      ${host && live ? `
+        <button type="button" class="btn btn-primary" id="finalizeBtn" style="margin-top:14px">Lock it in</button>
+        <p class="note-row" style="margin:10px 0 0">Locking it in freezes the ledger and shows every player who they owe.</p>` : ""}
+    </div>`;
+}
+
+function bindHome() {
+  const on = (id, fn) => { const el = $(id); if (el) el.addEventListener("click", fn); };
+  on("shareGameBtn", shareGame);
+  on("copyGameBtn", copyGameLink);
+  on("addGuestBtn", addGuestFlow);
+  on("settleBtn", () => { settleView = !settleView; renderHome(); });
+  on("finalizeBtn", finalizeGame);
+  on("leaveGameBtn", leaveGameFlow);
+  on("logSeatBtn", logSeatAsSession);
+  on("claimBtn", claimFlow);
+
+  $("homeContent").querySelectorAll("[data-rebuy]").forEach(b =>
+    b.addEventListener("click", () => rebuyFlow(b.dataset.rebuy)));
+  $("homeContent").querySelectorAll("[data-edit]").forEach(b =>
+    b.addEventListener("click", () => editPlayerFlow(b.dataset.edit)));
+  $("homeContent").querySelectorAll("[data-cash]").forEach(b =>
+    b.addEventListener("click", () => cashOutFlow(b.dataset.cash)));
+  $("homeContent").querySelectorAll("[data-confirm]").forEach(b =>
+    b.addEventListener("click", () => confirmClaim(b.dataset.confirm)));
+  $("homeContent").querySelectorAll("[data-reject]").forEach(b =>
+    b.addEventListener("click", () => rejectClaim(b.dataset.reject)));
+}
+
+/* ---------- host actions ---------- */
+async function hostGameFlow() {
+  const name = $("gName").value.trim();
+  if (!name) return toast("Give the game a name");
+  const code = genCode();
+  const game = {
+    code,
+    name,
+    date: $("gDate").value || todayISO(),
+    stakes: $("gStakes").value.trim(),
+    hostUid: ME.uid,
+    hostName: profile.nickname,
+    status: "live",
+    createdAt: Date.now(),
+  };
+  try {
+    await backend.createGame(code, game);
+    await backend.putPlayer(code, ME.uid, {
+      name: profile.nickname, buyIns: [], cashOut: null, claim: null,
+      guest: false, joinedAt: Date.now(),
+    });
+    settleView = false;
+    subscribeGame(code);
+    toast(`Game started — code ${code}`);
+  } catch (ex) { toast(errMsg(ex)); }
+}
+
+function addGuestFlow() {
+  formModal({
+    title: "Add a player",
+    note: "For anyone not using the app — you keep their ledger yourself.",
+    fields: [
+      { id: "name", label: "Name", maxlength: 24, placeholder: "e.g. Danny" },
+      { id: "buyIn", label: "Starting buy-in", money: true, placeholder: "100" },
+    ],
+    submitLabel: "Add to the table",
+    onSubmit: async (v) => {
+      const name = v.name.trim();
+      if (!name) { toast("Needs a name"); return false; }
+      const amt = parseFloat(v.buyIn);
+      await backend.putPlayer(activeGame, "g" + uuid().slice(0, 12), {
+        name,
+        buyIns: Number.isFinite(amt) && amt > 0 ? [r2(amt)] : [],
+        cashOut: null, claim: null, guest: true, joinedAt: Date.now(),
+      });
+      toast(`${name} is in`);
+    },
+  });
+}
+
+function rebuyFlow(id) {
+  const p = gameData.players.find(x => x.id === id);
+  if (!p) return;
+  const last = (p.buyIns || [])[p.buyIns.length - 1];
+  formModal({
+    title: `Buy-in for ${p.name}`,
+    fields: [{ id: "amt", label: "Amount", money: true, value: last ?? "", placeholder: "100" }],
+    submitLabel: "Add it",
+    onSubmit: async (v) => {
+      const amt = parseFloat(v.amt);
+      if (!Number.isFinite(amt) || amt <= 0) { toast("Enter an amount"); return false; }
+      await backend.putPlayer(activeGame, id, { ...p, buyIns: [...(p.buyIns || []), r2(amt)] });
+      toast(`${p.name} +${fmtMoney(r2(amt))}`);
+    },
+  });
+}
+
+function editPlayerFlow(id) {
+  const p = gameData.players.find(x => x.id === id);
+  if (!p) return;
+  formModal({
+    title: `Edit ${p.name}`,
+    note: "Buy-ins are the whole night's total. Leave the count blank if they're still playing.",
+    fields: [
+      { id: "name", label: "Name", value: p.name, maxlength: 24 },
+      { id: "buy", label: "Total buy-ins", money: true, value: gBuyIn(p) || "" },
+      { id: "out", label: "Counted out", money: true, value: p.cashOut ?? "" },
+    ],
+    submitLabel: "Save",
+    onSubmit: async (v) => {
+      const name = v.name.trim();
+      if (!name) { toast("Needs a name"); return false; }
+      const buy = parseFloat(v.buy);
+      const out = v.out === "" ? null : parseFloat(v.out);
+      if (out !== null && !Number.isFinite(out)) { toast("That cash-out isn't a number"); return false; }
+      await backend.putPlayer(activeGame, id, {
+        ...p, name,
+        buyIns: Number.isFinite(buy) && buy > 0 ? [r2(buy)] : [],
+        cashOut: out === null ? null : r2(out),
+        claim: null,
+      });
+      toast("Updated");
+    },
+  });
+}
+
+function cashOutFlow(id) {
+  const p = gameData.players.find(x => x.id === id);
+  if (!p) return;
+  const claimed = p.claim?.cashOut;
+  formModal({
+    title: `${p.name} counted down`,
+    note: claimed !== null && claimed !== undefined
+      ? `${esc(p.name)} says ${fmtMoney(claimed)}.` : undefined,
+    fields: [{ id: "out", label: "Chips counted", money: true, value: p.cashOut ?? claimed ?? "" }],
+    submitLabel: "Save the count",
+    onSubmit: async (v) => {
+      const out = parseFloat(v.out);
+      if (!Number.isFinite(out) || out < 0) { toast("Enter what they counted (0 if they busted)"); return false; }
+      await backend.putPlayer(activeGame, id, { ...p, cashOut: r2(out) });
+    },
+  });
+}
+
+async function confirmClaim(id) {
+  const p = gameData.players.find(x => x.id === id);
+  if (!p || !p.claim) return;
+  const c = p.claim;
+  await backend.putPlayer(activeGame, id, {
+    ...p,
+    buyIns: Array.isArray(c.buyIns) ? c.buyIns : (p.buyIns || []),
+    cashOut: c.cashOut === null || c.cashOut === undefined ? p.cashOut ?? null : r2(c.cashOut),
+    claim: null,
+  });
+  toast(`${p.name} confirmed`);
+}
+
+async function rejectClaim(id) {
+  const p = gameData.players.find(x => x.id === id);
+  if (!p) return;
+  await backend.putPlayer(activeGame, id, { ...p, claim: null });
+  toast("Dismissed — enter it yourself");
+}
+
+function finalizeGame() {
+  const players = sortedPlayers();
+  const result = settleUp(players.map(p => ({
+    id: p.id, name: p.name, buyIns: p.buyIns || [], cashOut: p.cashOut || 0,
+  })));
+  const off = result.discrepancy;
+  const warn = Math.abs(off) > 0.005
+    ? `The table is off by ${fmtMoney(Math.abs(off))}. You can still lock it in, but somebody's count is wrong.`
+    : "Everyone's counted and the table balances. This freezes the ledger.";
+  modal("Lock in the settle-up?", warn, [
+    { label: "Lock it in", kind: "btn-primary", onClick: async () => {
+      try {
+        await backend.updateGame(activeGame, { status: "settled", settledAt: Date.now() });
+        settleView = false;
+        toast("Settled — everyone can see what they owe");
+      } catch (ex) { toast(errMsg(ex)); }
+    }},
+    { label: "Not yet", kind: "btn-ghost" },
+  ]);
+}
+
+/* ---------- player actions ---------- */
+async function joinGameFlow(rawCode) {
+  const code = String(rawCode || "").trim().toUpperCase();
+  if (code.length !== 6) return toast("Codes are 6 characters");
+  try {
+    const game = await backend.getGame(code);
+    if (!game) return toast("No game with that code");
+    if (game.status !== "live") return toast("That game's already settled");
+    // Rejoining — after a reinstall, or just tapping the link twice — must not
+    // blank the ledger the host has been keeping. Only claim a seat if there
+    // isn't one already.
+    const seat = await backend.getPlayer(code, ME.uid);
+    if (!seat) {
+      await backend.putPlayer(code, ME.uid, {
+        name: profile.nickname, buyIns: [], cashOut: null, claim: null,
+        guest: false, joinedAt: Date.now(),
+      });
+    }
+    settleView = false;
+    subscribeGame(code);
+    showView("home");
+    toast(`You're in — ${game.name}`);
+  } catch (ex) { toast(errMsg(ex)); }
+}
+
+function claimFlow() {
+  const p = myPlayer();
+  if (!p) return;
+  const c = p.claim || {};
+  formModal({
+    title: "Tell the host your numbers",
+    note: "This doesn't change the ledger — the host sees it and confirms.",
+    fields: [
+      { id: "buy", label: "Total I bought in for", money: true,
+        value: (c.buyIns || []).reduce((t, b) => t + b, 0) || gBuyIn(p) || "" },
+      { id: "out", label: "What I counted down (blank if still playing)", money: true, value: c.cashOut ?? "" },
+    ],
+    submitLabel: "Send to the host",
+    onSubmit: async (v) => {
+      const buy = parseFloat(v.buy);
+      if (!Number.isFinite(buy) || buy < 0) { toast("Enter what you're in for"); return false; }
+      const out = v.out === "" ? null : parseFloat(v.out);
+      if (out !== null && (!Number.isFinite(out) || out < 0)) { toast("That count isn't a number"); return false; }
+      // A merge, not a whole-doc write: the rules only let a player touch
+      // these three fields, and rewriting the rest would both trip that and
+      // stomp any buy-in the host entered since this screen last loaded.
+      await backend.updatePlayer(activeGame, ME.uid, {
+        name: profile.nickname,
+        claim: { buyIns: [r2(buy)], cashOut: out === null ? null : r2(out) },
+        claimedAt: Date.now(),
+      });
+      toast("Sent — the host will confirm");
+    },
+  });
+}
+
+function leaveGameFlow() {
+  const host = isHost();
+  modal(
+    host ? "Close this game?" : "Leave this game?",
+    host
+      ? "It stays on everyone's phone as settled history — this just clears it off your Home tab."
+      : "You can come back any time with the code.",
+    [
+      { label: host ? "Close it" : "Leave", kind: "btn-danger", onClick: () => {
+        subscribeGame(null);
+        settleView = false;
+        toast(host ? "Cleared" : "Left the game");
+      }},
+      { label: "Stay", kind: "btn-ghost" },
+    ]);
+}
+
+/**
+ * Prefills the Add form from the host's own seat rather than writing a session
+ * outright — the duration is the one number the ledger doesn't know, and it's
+ * worth a look before it lands in the bankroll.
+ */
+function logSeatAsSession() {
+  const p = myPlayer();
+  if (!p) return toast("You weren't seated in this game");
+  const { game } = gameData;
+  editingId = null;
+  showView("add");
+  setGameType("cash");
+  $("fDate").value = game.date;
+  refreshLocationOptions(OTHER_LOC);
+  syncLocOther();
+  $("fLocationOther").value = game.name;
+  $("fStakes").value = game.stakes || "";
+  $("fBuyIn").value = gBuyIn(p);
+  $("fCashOut").value = p.cashOut ?? 0;
+  $("fFee").value = "";
+  $("fNotes").value = `Home game · ${game.name}`;
+  updateLiveProfit();
+  toast("Add how long you played, then save");
+}
+
+function shareGame() {
+  const { game } = gameData;
+  const msg = `${game.hostName} is running a poker game — ${game.name}. Take a seat: ${gameLink(game.code)} (code ${game.code})`;
+  if (navigator.share) navigator.share({ title: "Bankroll home game", text: msg }).catch(() => {});
+  else copyText(msg, "Invite copied");
+}
+function copyGameLink() { copyText(gameLink(gameData.game.code), "Link copied"); }
+function copyText(text, okMsg) {
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast(okMsg), () => toast(text));
+  else toast(text);
+}
+
+/* =====================================================================
    Account settings
    ===================================================================== */
 $("nickSaveBtn").addEventListener("click", async () => {
@@ -2158,7 +3817,9 @@ $("nickSaveBtn").addEventListener("click", async () => {
 });
 $("signOutBtn").addEventListener("click", () => {
   modal("Sign out?", "Your data stays in your account — sign back in anytime.", [
-    { label: "Sign out", kind: "btn-danger", onClick: () => backend.signOutUser() },
+    // Back to the sign-in tab: following an invite link flips the form to
+    // "create account", and a returning user shouldn't land on that.
+    { label: "Sign out", kind: "btn-danger", onClick: () => { setAuthMode("in"); backend.signOutUser(); } },
     { label: "Cancel", kind: "btn-ghost" },
   ]);
 });

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bankroll — self test</title>
+<style>
+  body {
+    margin: 0; padding: 20px;
+    font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: #1a1213; color: #e9e6dd;
+  }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  .sub { color: #9a948a; margin-bottom: 16px; }
+  .row { padding: 2px 0; }
+  .ok { color: #7fd18d; }
+  .fail { color: #ff8f8f; font-weight: 700; }
+  .detail { color: #9a948a; }
+  .summary { margin-top: 18px; padding: 12px 14px; border-radius: 8px; font-weight: 700; }
+  .summary.pass { background: rgba(127, 209, 141, 0.14); color: #7fd18d; }
+  .summary.fail { background: rgba(255, 143, 143, 0.14); color: #ff8f8f; }
+</style>
+</head>
+<body>
+<h1>Bankroll self test</h1>
+<div class="sub">Settle-up and hand equity — the two things in this app that are pure math and would fail silently.</div>
+<div id="out">Running…</div>
+
+<script type="module">
+import { runSelfTest } from "./selftest.js";
+
+const r = runSelfTest();
+document.getElementById("out").innerHTML =
+  r.results.map(c => `<div class="row"><span class="${c.pass ? "ok" : "fail"}">${c.pass ? "ok  " : "FAIL"}</span> ${c.name}${c.detail ? ` <span class="detail">— ${c.detail}</span>` : ""}</div>`).join("")
+  + `<div class="summary ${r.passed ? "pass" : "fail"}">${r.passed
+      ? `All ${r.results.length} checks passed in ${r.ms}ms.`
+      : `${r.failed.length} of ${r.results.length} CHECKS FAILED.`}</div>`;
+document.title = r.passed ? "✓ self test" : `✗ ${r.failed.length} failed`;
+</script>
+</body>
+</html>
