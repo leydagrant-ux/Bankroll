@@ -42,6 +42,23 @@
     /* tab bar sits on dark felt in both themes */
     --tab-idle: rgba(247, 241, 221, 0.6);
     --tab-active: #e6c96f;
+    /* league curves — categorical series, in the order they're handed out.
+       Order is the colorblind-safety mechanism, not taste: accent→blue→orange→aqua→violet→magenta
+       clears every adjacent-pair gate in both themes. Don't reshuffle without re-checking. */
+    --s1: #2a78d6;
+    --s2: #eb6834;
+    --s3: #1baf7a;
+    --s4: #4a3aa7;
+    --s5: #e87ba4;
+    /* play calendar — diverging ramp, losses ← nothing → wins */
+    --cal-0: #ebe9e0;
+    --cal-even: #d6d3c8;
+    --cal-w1: #a9d6a9;
+    --cal-w2: #4da34d;
+    --cal-w3: #006300;
+    --cal-l1: #f2bcbc;
+    --cal-l2: #e07d7d;
+    --cal-l3: #b82c2c;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -64,6 +81,19 @@
       --ring: rgba(255, 255, 255, 0.10);
       --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
       --tabbar: rgba(20, 5, 7, 0.92);
+      --s1: #3987e5;
+      --s2: #d95926;
+      --s3: #199e70;
+      --s4: #9085e9;
+      --s5: #d55181;
+      --cal-0: #2c2224;
+      --cal-even: #3f3236;
+      --cal-w1: #17401d;
+      --cal-w2: #1c7a26;
+      --cal-w3: #35c23e;
+      --cal-l1: #4a1c1e;
+      --cal-l2: #9c3232;
+      --cal-l3: #e2605f;
     }
   }
   :root[data-theme="light"] {
@@ -86,6 +116,19 @@
     --ring: rgba(22, 21, 15, 0.10);
     --shadow: 0 1px 3px rgba(22, 21, 15, 0.06), 0 4px 16px rgba(22, 21, 15, 0.04);
     --tabbar: rgba(31, 8, 10, 0.9);
+    --s1: #2a78d6;
+    --s2: #eb6834;
+    --s3: #1baf7a;
+    --s4: #4a3aa7;
+    --s5: #e87ba4;
+    --cal-0: #ebe9e0;
+    --cal-even: #d6d3c8;
+    --cal-w1: #a9d6a9;
+    --cal-w2: #4da34d;
+    --cal-w3: #006300;
+    --cal-l1: #f2bcbc;
+    --cal-l2: #e07d7d;
+    --cal-l3: #b82c2c;
   }
   :root[data-theme="dark"] {
     --page: #260a0d;
@@ -107,6 +150,19 @@
     --ring: rgba(255, 255, 255, 0.10);
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
     --tabbar: rgba(20, 5, 7, 0.92);
+    --s1: #3987e5;
+    --s2: #d95926;
+    --s3: #199e70;
+    --s4: #9085e9;
+    --s5: #d55181;
+    --cal-0: #2c2224;
+    --cal-even: #3f3236;
+    --cal-w1: #17401d;
+    --cal-w2: #1c7a26;
+    --cal-w3: #35c23e;
+    --cal-l1: #4a1c1e;
+    --cal-l2: #9c3232;
+    --cal-l3: #e2605f;
   }
 
   * { box-sizing: border-box; }
@@ -268,6 +324,8 @@
   }
   .hero .amount.win { color: var(--felt-win); }
   .hero .amount.loss { color: var(--felt-loss); }
+  /* position: relative keeps these above the big watermark spade, same as .record */
+  .hero .range { position: relative; font-size: 12.5px; color: var(--felt-muted); margin: -2px 0 10px; line-height: 1.45; }
   .record { display: flex; gap: 8px; flex-wrap: wrap; position: relative; }
   .pill {
     font-size: 12.5px;
@@ -283,7 +341,7 @@
   .hero .pill.win { background: rgba(142, 240, 181, 0.16); color: var(--felt-win); }
   .hero .pill.loss { background: rgba(255, 168, 168, 0.16); color: var(--felt-loss); }
 
-  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .tile {
     background: var(--surface);
     border: 1px solid var(--ring);
@@ -295,6 +353,18 @@
   .tile .t-value { font-size: 19px; font-weight: 700; margin-top: 4px; letter-spacing: -0.01em; }
   .tile .t-value.win { color: var(--win); }
   .tile .t-value.loss { color: var(--loss); }
+  .bb-skip {
+    background: none;
+    border: 0;
+    margin-top: -6px;
+    padding: 4px 2px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--felt-muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
 
   .chart-wrap { position: relative; }
   .chart-wrap svg { display: block; width: 100%; height: auto; }
@@ -313,6 +383,94 @@
     z-index: 5;
   }
   .chart-tip .tt-val { font-weight: 700; }
+  /* The multi-series tip is a stack of rows — too big to sit on the crosshair, so it
+     hangs beside it and flips to the other side rather than run off the card. */
+  .chart-tip.multi { transform: translate(9px, 0); }
+  .chart-tip.multi.flip { transform: translate(-100%, 0) translateX(-9px); }
+  .chart-tip .tt-head { font-weight: 700; margin-bottom: 4px; }
+  .chart-tip .tt-row { display: flex; align-items: center; gap: 7px; }
+  .chart-tip .tt-row i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .chart-tip .tt-row b { margin-left: auto; padding-left: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* ---------- play calendar (a year of days, one square each) ---------- */
+  .cal-years { display: flex; gap: 6px; flex-wrap: wrap; margin: -4px 0 12px; }
+  .cal-year {
+    border: 1px solid var(--hairline);
+    background: var(--surface-2);
+    color: var(--ink-2);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 12.5px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+  .cal-year.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .cal-row { display: flex; gap: 6px; align-items: flex-start; }
+  .cal-dow {
+    flex: none;
+    display: grid;
+    grid-template-rows: repeat(7, 11px);
+    gap: 3px;
+    padding-top: 15px; /* clears the month labels so rows line up with the grid */
+    font-size: 9px;
+    font-weight: 650;
+    color: var(--muted);
+  }
+  .cal-dow span { line-height: 11px; }
+  /* padding-bottom keeps a scrollbar off the last row of squares */
+  .cal-wrap { flex: 1; min-width: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
+  .cal-months, .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--weeks), 11px);
+    gap: 3px;
+    width: max-content;
+  }
+  .cal-months { height: 15px; font-size: 9.5px; font-weight: 650; color: var(--muted); }
+  .cal-months span { white-space: nowrap; }
+  .cal-grid { grid-auto-flow: column; grid-template-rows: repeat(7, 11px); }
+  .cal-cell {
+    width: 11px; height: 11px;
+    border: 0; padding: 0;
+    border-radius: 2.5px;
+    background: var(--cal-0);
+  }
+  .cal-cell.void { background: transparent; }  /* days after today: hold the grid shape, show nothing */
+  .cal-cell.even { background: var(--cal-even); }
+  .cal-cell.w1 { background: var(--cal-w1); }
+  .cal-cell.w2 { background: var(--cal-w2); }
+  .cal-cell.w3 { background: var(--cal-w3); }
+  .cal-cell.l1 { background: var(--cal-l1); }
+  .cal-cell.l2 { background: var(--cal-l2); }
+  .cal-cell.l3 { background: var(--cal-l3); }
+  .cal-legend {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .cal-legend i { width: 10px; height: 10px; border-radius: 2.5px; flex: none; }
+  .cal-legend .gap { width: 4px; }
+
+  /* ---------- league bankroll curves ---------- */
+  .curve-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .curve-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 5px 11px;
+    font-size: 12px;
+    font-weight: 650;
+    color: var(--ink-2);
+  }
+  .curve-chip i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .curve-chip b { font-weight: 750; font-variant-numeric: tabular-nums; }
+  .curve-chip b.win { color: var(--win); }
+  .curve-chip b.loss { color: var(--loss); }
+  .curve-chip.me { border-color: var(--accent); }
 
   .empty {
     text-align: center;
@@ -463,23 +621,25 @@
 
   /* ---------- stats & leaderboard tables ---------- */
   .stat-seg { margin-bottom: 2px; }
-  .table-scroll { overflow-x: auto; margin: 0 -16px; padding: 0 16px; }
-  table.stats { border-collapse: collapse; width: 100%; min-width: 336px; }
+  .table-scroll { overflow-x: auto; margin: 0 -16px; padding: 0 8px; }
+  /* seven columns on a narrow phone: the cells are tight on purpose so BB/hr
+     lands on screen instead of behind a horizontal scroll */
+  table.stats { border-collapse: collapse; width: 100%; min-width: 340px; }
   table.stats th {
     text-align: right;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.02em;
     color: var(--muted);
-    padding: 8px 6px;
+    padding: 8px 3px;
     border-bottom: 1px solid var(--hairline);
     white-space: nowrap;
   }
   table.stats th:first-child, table.stats td:first-child { text-align: left; padding-left: 2px; }
   table.stats td {
-    padding: 11px 6px;
-    font-size: 13.5px;
+    padding: 11px 3px;
+    font-size: 12px;
     text-align: right;
     border-bottom: 1px solid var(--grid);
     font-variant-numeric: tabular-nums;
@@ -505,6 +665,55 @@
     color: var(--ink-2);
   }
   .rank.r1 { background: var(--accent); color: var(--accent-ink); }
+
+  /* ---------- profile photo ---------- */
+  .avatar {
+    flex: none;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--surface-2);
+    border: 1px solid var(--ring);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 750;
+    line-height: 1;
+    color: var(--accent-deep);
+    overflow: hidden;
+    vertical-align: middle;
+  }
+  .photo-row { display: flex; gap: 14px; align-items: flex-start; }
+  .photo-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .photo-btns { display: flex; gap: 8px; }
+  .photo-btns .btn { padding: 10px 12px; min-height: 42px; font-size: 14px; }
+
+  /* ---------- account facts (most played) ---------- */
+  .acct-facts { display: flex; flex-direction: column; gap: 8px; }
+  .acct-facts div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .acct-facts .k { font-size: 12.5px; font-weight: 650; color: var(--ink-2); }
+  .acct-facts .v { font-size: 13.5px; font-weight: 700; text-align: right; }
+  .acct-facts .v small { display: block; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+
+  /* deliberately understated — a destructive action shouldn't look like a button to press */
+  .danger-zone { border-top: 1px solid var(--hairline); padding-top: 14px; margin-top: 2px; }
+  .danger-link {
+    background: none;
+    border: 0;
+    padding: 2px;
+    font-size: 13.5px;
+    font-weight: 650;
+    color: var(--loss);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 
   .backup-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .backup-note { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-top: 10px; }
@@ -907,14 +1116,18 @@
     padding: 20px 18px calc(18px + env(safe-area-inset-bottom, 0px));
     width: 100%;
     max-width: 420px;
+    max-height: 82vh;
+    overflow-y: auto;
     box-shadow: 0 -8px 40px rgba(0,0,0,0.3);
   }
   .modal h3 { margin: 0 0 8px; font-size: 17px; }
   /* #modalBody is a div, not a p: formModal() puts a field grid inside it and
-     the parser would hoist block content straight out of a paragraph. */
-  .modal #modalBody { margin: 0 0 16px; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+     the parser would hoist block content straight out of a paragraph. It keeps
+     pre-line so a body can still list one item per line. */
+  .modal #modalBody { margin: 0 0 16px; font-size: 14px; color: var(--ink-2); line-height: 1.5; white-space: pre-line; }
   .modal #modalBody:empty { margin: 0; }
-  .modal p { margin: 0 0 16px; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  .modal #modalBody .mform { white-space: normal; }
+  .modal p { margin: 0 0 16px; font-size: 14px; color: var(--ink-2); line-height: 1.5; white-space: pre-line; }
   .modal .btn + .btn { margin-top: 8px; }
 
   .toast {
@@ -943,6 +1156,15 @@
 </style>
 </head>
 <body>
+
+<script>
+  /* Runs before the app module so the saved theme is on the html element before
+     first paint — otherwise a light-mode user on a dark phone gets a dark flash. */
+  try {
+    var t = localStorage.getItem("bankroll.theme");
+    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+  } catch (e) { /* private mode — fall back to the OS setting */ }
+</script>
 
 <!-- ============ SPLASH ============ -->
 <div class="splash" id="splash">
@@ -1139,13 +1361,53 @@
       <div class="card">
         <h2>Account</h2>
         <div class="form-grid">
+          <div class="photo-row">
+            <div id="photoPreview"></div>
+            <div class="photo-side">
+              <div class="photo-btns">
+                <button type="button" class="btn btn-ghost" id="photoBtn">Add photo</button>
+                <button type="button" class="btn btn-ghost" id="photoRemoveBtn" hidden>Remove</button>
+              </div>
+              <p class="backup-note" style="margin-top:0">Shown to leaguemates beside your nickname. Cropped square and shrunk on your phone before it's saved.</p>
+            </div>
+          </div>
+          <input type="file" id="photoFile" accept="image/*" hidden>
           <div class="field">
             <label for="nickInput">Nickname <span style="font-weight:400;color:var(--muted)">(shown on leaderboards)</span></label>
             <input type="text" id="nickInput" maxlength="20" autocomplete="off">
           </div>
           <button type="button" class="btn btn-ghost" id="nickSaveBtn">Save nickname</button>
+          <div class="acct-facts" id="acctFacts"></div>
+          <div class="field">
+            <label id="themeLabel">Appearance</label>
+            <div class="seg" role="group" aria-labelledby="themeLabel">
+              <button type="button" data-theme-set="system" aria-pressed="true">System</button>
+              <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
+              <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+            </div>
+          </div>
+          <div class="field">
+            <label id="defaultsLabel">Log form defaults <span style="font-weight:400;color:var(--muted)">(what a new session starts with)</span></label>
+            <div class="two-col" role="group" aria-labelledby="defaultsLabel">
+              <select id="defLocation" aria-label="Default location"></select>
+              <input type="text" id="defStakes" list="stakesList" maxlength="20" placeholder="Stakes, e.g. 1/2" autocomplete="off" aria-label="Default stakes">
+            </div>
+          </div>
+          <button type="button" class="btn btn-ghost" id="defSaveBtn">Save defaults</button>
+          <div class="field">
+            <label id="shareLabel">Session sharing <span style="font-weight:400;color:var(--muted)">(what leaguemates can see)</span></label>
+            <div class="seg" role="group" aria-labelledby="shareLabel">
+              <button type="button" id="shareOff" aria-pressed="true">Totals only</button>
+              <button type="button" id="shareOn" aria-pressed="false">Full sessions</button>
+            </div>
+            <p class="backup-note" style="margin-top:8px"><strong>Full sessions</strong> is on by default — it's what puts your curve on the league chart. It shares each session's date, location, stakes, buy-in, cash-out, and length; your nickname and weekly &amp; all-time totals are shared either way. Switch to <strong>Totals only</strong> any time. Your notes are never shared.</p>
+          </div>
           <p class="backup-note" id="acctEmail" style="margin-top:0"></p>
           <button type="button" class="btn btn-danger" id="signOutBtn">Sign out</button>
+          <div class="danger-zone">
+            <button type="button" class="danger-link" id="deleteAcctBtn">Delete my account</button>
+            <p class="backup-note" style="margin-top:6px">Erases your sessions, your profile, and your place on every leaderboard. There's no undo and no backup — export a CSV first if you want to keep a copy.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -1235,6 +1497,8 @@ const fmtMoney = (n) => {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", ...opts }).format(n);
 };
 const fmtSigned = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + fmtMoney(Math.abs(n));
+const fmtPct = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + (Math.abs(n) * 100).toFixed(1).replace(/\.0$/, "") + "%";
+const fmtBB = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n).toFixed(1);
 const plClass = (n) => n > 0 ? "win" : n < 0 ? "loss" : "";
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -1256,13 +1520,52 @@ const feeOf = (s) => (s.hourlyFee || 0) * (s.durationMinutes / 60);
 const profitOf = (s) => s.cashOut - s.buyIn - feeOf(s);
 const hoursOf = (s) => s.durationMinutes / 60;
 const stakesLabel = (s) => s.gameType === "tournament" ? `${s.stakes} MTT` : s.stakes;
+
+/* ---------- big blind, read out of the free-text stakes string ---------- */
+// A wrong blind quietly skews BB/hr for every session it touches, so each branch
+// below returns null rather than accept a number it can't stand behind.
+const BB_SANITY = { minRatio: 1, maxRatio: 5, minBB: 0.01, maxBB: 1000, minStacks: 5, maxStacks: 2000 };
+const GAME_LABEL = /\b(?:no[\s-]?limit|pot[\s-]?limit|nlhe|plo\d*|nl|pl|fl|lhe|limit|hold\s?'?em|holdem|omaha|stud|razz|mixed|max|handed|deep|short|ante|straddle|cash|mtt)\b/g;
+function bigBlindOf(s) {
+  if (s.gameType === "tournament") return null;  // tournament stakes is a buy-in level, not a blind
+  const raw = (s.stakes || "").trim();
+  if (!raw || raw === "?") return null;          // "?" is what the form stores for a blank stakes field
+  const t = raw.toLowerCase()
+    .replace(/[$,]/g, "")
+    .replace(/(\d*\.?\d+)[c¢]/g, (_, n) => n / 100)   // 25c and 25¢ both mean 0.25
+    .replace(/\s*([/-])\s*/g, "$1")                   // "1 / 2" → "1/2"
+    .replace(GAME_LABEL, " ");                        // drop game names so "plo5 2/5" can't read as 5/2
+  const m = t.match(/(\d*\.?\d+)[/-](\d*\.?\d+)/);
+  if (!m) return null;
+  // three-number stakes (1/2/5) are a mandatory straddle or bring-in — the second number is still the posted big blind
+  const sb = Number(m[1]), bb = Number(m[2]);
+  if (!Number.isFinite(bb) || bb <= 0) return null;
+  if (sb > bb) return null;                      // transposed or malformed; sb === bb is real (2/2 and 5/5 PLO)
+  const ratio = bb / sb;
+  if (!(ratio >= BB_SANITY.minRatio && ratio <= BB_SANITY.maxRatio)) return null;
+  if (bb < BB_SANITY.minBB || bb > BB_SANITY.maxBB) return null;
+  if (s.buyIn > 0) {                             // a 0 buy-in clears form validation — skip this check, don't fail on it
+    const stacks = s.buyIn / bb;
+    if (stacks < BB_SANITY.minStacks || stacks > BB_SANITY.maxStacks) return null;
+  }
+  return bb;
+}
+const bbUnreadable = (s) => s.gameType !== "tournament" && bigBlindOf(s) === null;
+
 function aggregate(list) {
   const net = list.reduce((t, s) => t + profitOf(s), 0);
   const hours = list.reduce((t, s) => t + hoursOf(s), 0);
+  const buyIn = list.reduce((t, s) => t + s.buyIn, 0);
   const wins = list.filter(s => profitOf(s) > 0).length;
   const losses = list.filter(s => profitOf(s) < 0).length;
   const push = list.length - wins - losses;
-  return { net, hours, wins, losses, push, count: list.length, hourly: hours > 0 ? net / hours : 0 };
+  // BB/hr runs on its own subset: only sessions whose stakes parsed, and only their hours
+  const bbList = list.filter(s => bigBlindOf(s) !== null);
+  const bbWon = bbList.reduce((t, s) => t + profitOf(s) / bigBlindOf(s), 0);
+  const bbHours = bbList.reduce((t, s) => t + hoursOf(s), 0);
+  const bbSkipped = list.filter(bbUnreadable).length;
+  return { net, hours, buyIn, wins, losses, push, count: list.length, hourly: hours > 0 ? net / hours : 0, roi: buyIn > 0 ? net / buyIn : null,
+    bbWon, bbHours, bbPerHour: bbHours > 0 ? bbWon / bbHours : null, bbSkipped };
 }
 
 /* ---------- ISO week (Monday-based) ---------- */
@@ -1328,7 +1631,7 @@ function mockBackend() {
       if (pass.length < 6) throw { code: "auth/weak-password" };
       const uid = "u" + Math.random().toString(36).slice(2, 10);
       d.byEmail[email] = { uid, pass };
-      d.users[uid] = { profile: { nickname, leagueIds: [] }, sessions: {} };
+      d.users[uid] = { profile: { nickname, leagueIds: [], createdAt: Date.now() }, sessions: {} };
       put(d);
       setMe({ uid, email });
     },
@@ -1338,6 +1641,13 @@ function mockBackend() {
       setMe({ uid: rec.uid, email });
     },
     async signOutUser() { setMe(null); },
+    async deleteAccount(uid) {
+      const d = db();
+      delete d.users[uid];
+      for (const email of Object.keys(d.byEmail)) if (d.byEmail[email].uid === uid) delete d.byEmail[email];
+      put(d);
+      setMe(null);
+    },
     async resetPassword() { /* demo: nothing to send */ },
     async getProfile(uid) { return db().users[uid]?.profile || null; },
     async saveProfile(uid, data) { const d = db(); d.users[uid].profile = { ...d.users[uid].profile, ...data }; put(d); },
@@ -1440,6 +1750,14 @@ async function realBackend(config) {
     signIn: (email, pass) => A.signInWithEmailAndPassword(auth, email, pass),
     signOutUser: () => A.signOut(auth),
     resetPassword: (email) => A.sendPasswordResetEmail(auth, email),
+    // Data goes first: the rules only let us delete it while still signed in as its
+    // owner, so deleting the login first would strand every document behind it.
+    async deleteAccount(uid) {
+      const snap = await F.getDocs(F.collection(db, "users", uid, "sessions"));
+      for (const d of snap.docs) await F.deleteDoc(d.ref);
+      await F.deleteDoc(F.doc(db, "users", uid));
+      await A.deleteUser(auth.currentUser);
+    },
     getProfile: async (uid) => { const s = await F.getDoc(F.doc(db, "users", uid)); return s.exists() ? s.data() : null; },
     saveProfile: (uid, data) => F.setDoc(F.doc(db, "users", uid), data, { merge: true }),
     subSessions: (uid, cb) => F.onSnapshot(F.collection(db, "users", uid, "sessions"),
@@ -1505,10 +1823,11 @@ let editingId = null;
 let gameType = "cash";
 let statsGroup = "stakes";
 let activeLeague = null;    // league code
-let lbMode = "week";        // week | all | history
+let lbMode = "all";         // week | all | history — the board opens on all-time
 let leagueFormMode = null;  // null | "create" | "join" — inline add-league form when already in leagues
 let playerView = null;      // uid of leaguemate whose sessions are open, or null
 let historyWeek = null;
+let calYear = new Date().getFullYear();   // which year the session calendar is showing
 const leagueData = new Map();   // code -> { league, stats } | null while loading
 const leagueSubs = new Map();   // code -> unsubscribe
 const statsHealed = new Set();  // leagues we already re-pushed stats to this session
@@ -1529,8 +1848,80 @@ let statsRange = "all";     // all | 30 | 90 | ytd — analytics date filter
  */
 const gameKey = () => `bankroll.activeGame.v1.${ME?.uid || "anon"}`;
 
-const sorted = () => [...sessions].sort((a, b) =>
-  a.date === b.date ? (a.createdAt || 0) - (b.createdAt || 0) : (a.date < b.date ? -1 : 1));
+const byDate = (a, b) =>
+  a.date === b.date ? (a.createdAt || 0) - (b.createdAt || 0) : (a.date < b.date ? -1 : 1);
+const sorted = () => [...sessions].sort(byDate);
+
+/* ---------- profile photos ----------
+   A leaguemate's photo comes out of their stats doc and straight into an <img> in
+   our browser, so it has to be a self-contained data URL. Anything else — an http
+   URL above all — would let whoever wrote it watch who opens the leaderboard. */
+const PHOTO_PX = 160, PHOTO_MAX = 48000;
+const safePhoto = (p) =>
+  typeof p === "string" && p.length <= PHOTO_MAX && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(p) ? p : "";
+
+function avatarHTML(photo, name, size) {
+  const box = `width:${size}px;height:${size}px;font-size:${Math.round(size * 0.42)}px`;
+  const ok = safePhoto(photo);
+  return ok
+    ? `<img class="avatar" style="${box}" src="${ok}" alt="">`
+    : `<span class="avatar" style="${box}" aria-hidden="true">${esc((name || "?").trim().charAt(0).toUpperCase() || "?")}</span>`;
+}
+
+// square-crop and shrink on the device, so what we store is a few KB rather than a phone photo
+async function photoDataURL(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error("decode"));
+      i.src = url;
+    });
+    const side = Math.min(img.naturalWidth, img.naturalHeight);
+    if (!side) throw new Error("empty");
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = PHOTO_PX;
+    cv.getContext("2d").drawImage(img,
+      (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side,
+      0, 0, PHOTO_PX, PHOTO_PX);
+    for (const q of [0.72, 0.6, 0.45, 0.3]) {
+      const out = cv.toDataURL("image/jpeg", q);
+      if (out.length <= PHOTO_MAX) return out;
+    }
+    return "";
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// the venue and game that show up most across every logged session
+function topCount(keyFn) {
+  const counts = new Map();
+  for (const s of sessions) {
+    const k = keyFn(s);
+    if (k) counts.set(k, (counts.get(k) || 0) + 1);
+  }
+  let key = null, count = 0;
+  for (const [k, c] of counts) if (c > count) { key = k; count = c; }
+  return key ? { key, count } : null;
+}
+
+// cumulative profit after each session, oldest first — the shape behind every curve in the app.
+// Takes a plain list so it works on a leaguemate's shared sessions too, not just our own.
+function curvePoints(list) {
+  let cum = 0;
+  return [...list].sort(byDate).map(s => {
+    const profit = profitOf(s);
+    cum += profit;
+    return { date: s.date, cum, profit, stakes: stakesLabel(s) };
+  });
+}
+// first tracked session → most recent
+function spanOf(list) {
+  const dates = list.map(s => s.date).sort();
+  return { first: dates[0], last: dates[dates.length - 1] };
+}
 
 /* ---------- toast & modal ---------- */
 let toastTimer;
@@ -1666,6 +2057,11 @@ $("forgotBtn").addEventListener("click", async () => {
    ===================================================================== */
 if (backend.isMock) $("demoNote").hidden = false;
 
+// Full session sharing is the out-of-the-box setting — the league views (curves,
+// player detail) are the whole point of a league, and they're empty without it.
+// An explicit `false` on the profile is someone opting out, and is left alone.
+const SHARE_DEFAULT = true;
+
 // Someone followed the host's invite link. Hold the code across the sign-up
 // they're about to do — a new player's first act in this app is usually making
 // an account so they can sit down.
@@ -1696,14 +2092,21 @@ backend.onAuth(async (user) => {
   }
   profile = await backend.getProfile(user.uid);
   if (!profile) {
-    profile = { nickname: pendingNickname || user.email.split("@")[0], leagueIds: [] };
+    profile = { nickname: pendingNickname || user.email.split("@")[0], leagueIds: [], shareSessions: SHARE_DEFAULT, createdAt: Date.now() };
     await backend.saveProfile(user.uid, profile);
   }
   if (!Array.isArray(profile.leagueIds)) profile.leagueIds = [];
+  if (typeof profile.shareSessions !== "boolean") {
+    // account predates the setting — write the default down so it stops being implicit
+    profile.shareSessions = SHARE_DEFAULT;
+    await backend.saveProfile(user.uid, { shareSessions: SHARE_DEFAULT });
+  }
   $("authView").hidden = true;
   $("appView").hidden = false;
   $("nickInput").value = profile.nickname;
+  setShareToggle(profile.shareSessions);
   $("acctEmail").textContent = `Signed in as ${user.email}`;
+  renderAccount();
   unsubSessions = backend.subSessions(user.uid, (list) => {
     sessions = list;
     refreshDatalists();
@@ -1778,11 +2181,16 @@ function renderDash() {
   }
   const a = aggregate(sessions);
   const totalFees = sessions.reduce((t, s) => t + feeOf(s), 0);
+  const span = spanOf(sessions);
+  const range = span.first === span.last
+    ? fmtDate(span.first)
+    : `${fmtDate(span.first)} – ${fmtDate(span.last)}`;
   el.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="card hero">
         <div class="label">All-time result</div>
         <div class="amount ${plClass(a.net)}">${fmtSigned(r2(a.net))}</div>
+        <div class="range">${range}</div>
         <div class="record">
           <span class="pill win">${a.wins} winning</span>
           <span class="pill loss">${a.losses} losing</span>
@@ -1793,14 +2201,133 @@ function renderDash() {
       <div class="tiles">
         <div class="tile"><div class="t-label">Hourly</div><div class="t-value ${plClass(a.hourly)}">${fmtSigned(r2(a.hourly))}</div></div>
         <div class="tile"><div class="t-label">Hours</div><div class="t-value">${a.hours.toFixed(1).replace(/\.0$/, "")}</div></div>
-        <div class="tile"><div class="t-label">Sessions</div><div class="t-value">${a.count}</div></div>
+        <div class="tile"><div class="t-label">ROI</div><div class="t-value ${plClass(a.roi)}">${a.roi === null ? "—" : fmtPct(a.roi)}</div></div>
+        <div class="tile"><div class="t-label">BB/hr</div><div class="t-value ${plClass(a.bbPerHour)}">${a.bbPerHour === null ? "—" : fmtBB(a.bbPerHour)}</div></div>
       </div>
+      ${a.bbSkipped > 0 ? `<button type="button" class="bb-skip" id="bbSkipBtn">${a.bbSkipped} cash session${a.bbSkipped === 1 ? "" : "s"} left out of BB/hr — stakes couldn't be read</button>` : ""}
       <div class="card">
         <h2>Bankroll curve</h2>
         <div class="chart-wrap" id="chartWrap"></div>
       </div>
+      <div class="card">
+        <h2>Session calendar</h2>
+        <div id="calContent"></div>
+      </div>
     </div>`;
-  drawChart($("chartWrap"));
+  drawChart($("chartWrap"), curvePoints(sessions));
+  drawCalendar($("calContent"));
+  $("bbSkipBtn")?.addEventListener("click", showBBSkipped);
+}
+
+/* ---------- play calendar: one square per day, colored by that day's result ---------- */
+const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const mondayOf = (d) => { const m = new Date(d); m.setDate(m.getDate() - ((m.getDay() + 6) % 7)); return m; };
+
+// years worth offering, newest first: anything played plus the year we're in
+function calYears() {
+  const years = new Set(sessions.map(s => Number(s.date.slice(0, 4))));
+  years.add(new Date().getFullYear());
+  return [...years].sort((a, b) => b - a);
+}
+
+function drawCalendar(wrap) {
+  // one bucket per calendar day — two sessions on the same day read as that day's net
+  const days = new Map();
+  for (const s of sessions) {
+    const d = days.get(s.date) || { net: 0, count: 0 };
+    d.net += profitOf(s);
+    d.count++;
+    days.set(s.date, d);
+  }
+  const today = todayISO();
+  const years = calYears();
+  if (!years.includes(calYear)) calYear = years[0];
+
+  // Jan 1 to Dec 31 of the chosen year. The grid still runs in whole Mon–Sun columns,
+  // so the days either side of the year are rendered blank rather than dropped.
+  const start = mondayOf(new Date(calYear, 0, 1));
+  const end = mondayOf(new Date(calYear, 11, 31));
+  const weeks = Math.round((end - start) / (7 * 86400000)) + 1;
+
+  // shade by size relative to the biggest day either way, so the scale fits whoever's
+  // playing — and stays comparable when you flip between years
+  const scale = Math.max(1, ...[...days.values()].map(v => Math.abs(v.net)));
+  const level = (net) => {
+    if (net === 0) return "even";
+    const r = Math.abs(net) / scale;
+    return (net > 0 ? "w" : "l") + (r < 0.2 ? 1 : r < 0.55 ? 2 : 3);
+  };
+
+  let cells = "", months = "", todayCol = -1;
+  const cur = new Date(start);
+  for (let w = 0; w < weeks; w++) {
+    for (let d = 0; d < 7; d++) {
+      const iso = isoOf(cur);
+      const inYear = cur.getFullYear() === calYear;
+      // a column earns its month label from the 1st landing inside it
+      if (inYear && cur.getDate() === 1) {
+        months += `<span style="grid-column:${w + 1};grid-row:1">${cur.toLocaleDateString("en-US", { month: "short" })}</span>`;
+      }
+      if (iso === today) todayCol = w;
+      const rec = inYear ? days.get(iso) : null;
+      if (!inYear || iso > today) {
+        cells += `<div class="cal-cell void"></div>`;   // outside the year, or hasn't happened yet
+      } else if (rec) {
+        const label = `${fmtDate(iso)} · ${fmtSigned(r2(rec.net))} · ${rec.count} session${rec.count === 1 ? "" : "s"}`;
+        cells += `<button type="button" class="cal-cell ${level(rec.net)}" data-label="${esc(label)}" title="${esc(label)}" aria-label="${esc(label)}"></button>`;
+      } else {
+        cells += `<div class="cal-cell" aria-hidden="true"></div>`;
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+  }
+
+  const yearTabs = years.length > 1
+    ? `<div class="cal-years" role="group" aria-label="Calendar year">
+        ${years.map(y => `<button type="button" class="cal-year ${y === calYear ? "on" : ""}" data-year="${y}" aria-pressed="${y === calYear}">${y}</button>`).join("")}
+      </div>`
+    : "";
+
+  wrap.innerHTML = yearTabs + `
+    <div class="cal-row">
+      <div class="cal-dow"><span style="grid-row:1">Mon</span><span style="grid-row:3">Wed</span><span style="grid-row:5">Fri</span></div>
+      <div class="cal-wrap">
+        <div style="--weeks:${weeks}">
+          <div class="cal-months">${months}</div>
+          <div class="cal-grid">${cells}</div>
+        </div>
+      </div>
+    </div>
+    <div class="cal-legend">
+      <span>Lost</span>
+      <i style="background:var(--cal-l3)"></i><i style="background:var(--cal-l2)"></i><i style="background:var(--cal-l1)"></i>
+      <span class="gap"></span>
+      <i style="background:var(--cal-w1)"></i><i style="background:var(--cal-w2)"></i><i style="background:var(--cal-w3)"></i>
+      <span>Won</span>
+    </div>`;
+
+  // This year opens on today — not on the end of the grid, which is now an empty
+  // December. A past year opens in January, where it starts.
+  const scroller = wrap.querySelector(".cal-wrap");
+  const colW = wrap.querySelector(".cal-grid").getBoundingClientRect().width / weeks;
+  scroller.scrollLeft = todayCol >= 0
+    ? Math.max(0, (todayCol + 2) * colW - scroller.clientWidth)
+    : 0;
+  wrap.querySelectorAll(".cal-cell[data-label]").forEach(c =>
+    c.addEventListener("click", () => toast(c.dataset.label)));
+  wrap.querySelectorAll(".cal-year").forEach(b => b.addEventListener("click", () => {
+    calYear = Number(b.dataset.year);
+    drawCalendar(wrap);
+  }));
+}
+
+// the skipped rows are fixable — show which ones so they can be corrected on the form
+function showBBSkipped() {
+  const skipped = sorted().reverse().filter(bbUnreadable);
+  const lines = skipped.map(s => `${fmtDate(s.date)} · ${s.location || "—"} · "${s.stakes}"`).join("\n");
+  modal(`${skipped.length} session${skipped.length === 1 ? "" : "s"} left out of BB/hr`,
+    `BB/hr couldn't read blinds off these stakes, so they don't count toward it. Edit one to a format like 1/2 and it joins the stat.\n\n${lines}`,
+    [{ label: "Close", kind: "btn-ghost" }]);
 }
 
 function niceTicks(min, max, target) {
@@ -1821,11 +2348,7 @@ const fmtAxis = (n) => {
   return (n < 0 ? "−$" : "$") + s;
 };
 
-function drawChart(wrap) {
-  const chron = sorted();
-  let cum = 0;
-  const pts = chron.map(s => { cum += profitOf(s); return { date: s.date, cum, profit: profitOf(s), stakes: stakesLabel(s) }; });
-
+function drawChart(wrap, pts) {
   const W = 360, H = 210, padL = 44, padR = 14, padT = 12, padB = 26;
   const iw = W - padL - padR, ih = H - padT - padB;
   let lo = Math.min(0, ...pts.map(p => p.cum));
@@ -1890,6 +2413,110 @@ function drawChart(wrap) {
   }
   function onLeave() {
     xh.setAttribute("opacity", "0"); hdot.setAttribute("opacity", "0"); tip.style.display = "none";
+  }
+  hit.addEventListener("pointermove", onMove);
+  hit.addEventListener("pointerdown", onMove);
+  hit.addEventListener("pointerleave", onLeave);
+}
+
+/* ---------- several curves at once (league comparison) ----------
+   Unlike the solo chart this runs on a real time axis: players have different
+   session counts, so lining them up by index would compare different weeks. */
+function drawCurves(wrap, series) {
+  const W = 360, H = 210, padL = 44, padR = 14, padT = 12, padB = 26;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  for (const s of series) s.t = s.pts.map(p => parseDate(p.date).getTime());
+
+  const allT = [...new Set(series.flatMap(s => s.t))].sort((a, b) => a - b);
+  let t0 = allT[0], t1 = allT[allT.length - 1];
+  if (t0 === t1) { t0 -= 86400000; t1 += 86400000; }
+  let lo = Math.min(0, ...series.flatMap(s => s.pts.map(p => p.cum)));
+  let hi = Math.max(0, ...series.flatMap(s => s.pts.map(p => p.cum)));
+  if (lo === hi) { lo -= 50; hi += 50; }
+  const ticks = niceTicks(lo, hi, 4);
+  lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
+  const x = (t) => padL + ((t - t0) / (t1 - t0)) * iw;
+  const y = (v) => padT + (1 - (v - lo) / (hi - lo)) * ih;
+
+  let grid = "", labels = "";
+  for (const t of ticks) {
+    grid += `<line x1="${padL}" x2="${W - padR}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)" stroke-width="1"/>`;
+    labels += `<text x="${padL - 7}" y="${y(t) + 3.5}" text-anchor="end" font-size="10" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${fmtAxis(t)}</text>`;
+  }
+  const zeroLine = (lo < 0 && hi > 0)
+    ? `<line x1="${padL}" x2="${W - padR}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3" opacity="0.7"/>` : "";
+
+  const fmtMs = (ms) => new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const xLabels = [[t0, "start"], [(t0 + t1) / 2, "middle"], [t1, "end"]]
+    .map(([t, anchor]) => `<text x="${x(t)}" y="${H - 8}" text-anchor="${anchor}" font-size="10" fill="var(--muted)">${esc(fmtMs(t))}</text>`)
+    .join("");
+
+  // our own line goes on last so it reads on top of the pile
+  const order = [...series].sort((a, b) => (a.me ? 1 : 0) - (b.me ? 1 : 0));
+  const paths = order.map(s => s.pts.length === 1
+    ? `<circle cx="${x(s.t[0]).toFixed(1)}" cy="${y(s.pts[0].cum).toFixed(1)}" r="3.5" fill="${s.color}" stroke="var(--surface)" stroke-width="1.5"/>`
+    : `<path d="${s.pts.map((p, i) => `${i ? "L" : "M"}${x(s.t[i]).toFixed(1)},${y(p.cum).toFixed(1)}`).join(" ")}"
+         fill="none" stroke="${s.color}" stroke-width="${s.me ? 2.6 : 1.8}" stroke-linejoin="round" stroke-linecap="round"/>`
+  ).join("");
+  const endDots = order.map(s => {
+    const last = s.pts[s.pts.length - 1];
+    return `<circle cx="${x(s.t[s.t.length - 1]).toFixed(1)}" cy="${y(last.cum).toFixed(1)}" r="${s.me ? 4 : 3.2}" fill="${s.color}" stroke="var(--surface)" stroke-width="1.5"/>`;
+  }).join("");
+
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Bankroll curves for ${series.length} player${series.length === 1 ? "" : "s"}">
+      ${grid}${zeroLine}${labels}${xLabels}
+      ${paths}${endDots}
+      <line id="cxh" x1="0" x2="0" y1="${padT}" y2="${padT + ih}" stroke="var(--muted)" stroke-width="1" opacity="0" pointer-events="none"/>
+      ${series.map(() => `<circle class="cdot" r="4" opacity="0" pointer-events="none"/>`).join("")}
+      <rect x="${padL}" y="${padT}" width="${iw}" height="${ih}" fill="transparent" id="chitbox"/>
+    </svg>
+    <div class="chart-tip multi" id="curveTip"></div>`;
+
+  const svg = wrap.querySelector("svg");
+  const hit = wrap.querySelector("#chitbox");
+  const xh = wrap.querySelector("#cxh");
+  const dots = [...wrap.querySelectorAll(".cdot")];
+  const tip = wrap.querySelector("#curveTip");
+
+  function onMove(ev) {
+    const r = svg.getBoundingClientRect();
+    const sx = (ev.clientX - r.left) * (W / r.width);
+    const t = t0 + Math.min(1, Math.max(0, (sx - padL) / iw)) * (t1 - t0);
+    let snap = allT[0], bd = Infinity;
+    for (const tt of allT) { const d = Math.abs(tt - t); if (d < bd) { bd = d; snap = tt; } }
+
+    const rows = [];
+    series.forEach((s, i) => {
+      let idx = -1;
+      for (let k = 0; k < s.t.length && s.t[k] <= snap; k++) idx = k;   // last session on or before this date
+      const dot = dots[i];
+      if (idx < 0) { dot.setAttribute("opacity", "0"); return; }        // hadn't started playing yet
+      rows.push({ name: s.name, color: s.color, cum: s.pts[idx].cum });
+      // only mark the players who actually played that day — anywhere else the dot
+      // would sit between sessions, where nobody has a real number
+      if (s.t[idx] === snap) {
+        dot.setAttribute("cx", x(snap));
+        dot.setAttribute("cy", y(s.pts[idx].cum));
+        dot.setAttribute("fill", s.color);
+        dot.setAttribute("stroke", "var(--surface)");
+        dot.setAttribute("stroke-width", "1.5");
+        dot.setAttribute("opacity", "1");
+      } else dot.setAttribute("opacity", "0");
+    });
+    xh.setAttribute("x1", x(snap)); xh.setAttribute("x2", x(snap)); xh.setAttribute("opacity", "0.5");
+    rows.sort((a, b) => b.cum - a.cum);
+    tip.style.display = "block";
+    tip.classList.toggle("flip", x(snap) > W / 2);
+    tip.style.left = (x(snap) / W * 100) + "%";
+    tip.style.top = (padT / H * 100) + "%";
+    tip.innerHTML = `<div class="tt-head">${esc(fmtMs(snap))}</div>` + rows.map(r =>
+      `<div class="tt-row"><i style="background:${r.color}"></i>${esc(r.name)}<b>${fmtSigned(r2(r.cum))}</b></div>`).join("");
+  }
+  function onLeave() {
+    xh.setAttribute("opacity", "0");
+    for (const d of dots) d.setAttribute("opacity", "0");
+    tip.style.display = "none";
   }
   hit.addEventListener("pointermove", onMove);
   hit.addEventListener("pointerdown", onMove);
@@ -2023,6 +2650,10 @@ function resetForm() {
   $("cancelEditBtn").hidden = true;
   refreshDatalists();
   renderHandsCard(pendingTimer ? pendingTimer.hands : []);
+  // whatever they set in Account, so the usual game is already filled in
+  if (profile?.defaultLocation) refreshLocationOptions(profile.defaultLocation);
+  if (profile?.defaultStakes) $("fStakes").value = profile.defaultStakes;
+  updateLiveProfit();
 }
 
 /**
@@ -2119,6 +2750,7 @@ $("sessForm").addEventListener("submit", async (e) => {
 
   const locSel = $("fLocation").value;
   let location = locSel === OTHER_LOC ? $("fLocationOther").value.trim() : locSel;
+  if (locSel === OTHER_LOC && !location) return toast("Name the spot you played");
   if (locSel === OTHER_LOC && location) {
     // typed a venue that already exists (any casing) → use the existing spelling
     const canon = locationChoices().find(l => l.toLowerCase() === location.toLowerCase());
@@ -2248,6 +2880,7 @@ const TIME_BUCKETS = [
 
 function renderStats() {
   const el = $("statsContent");
+  renderAccount();   // the account card sits outside statsContent but tracks the same sessions
   if (!sessions.length) {
     el.innerHTML = `<div class="card"><div class="empty">
       <div class="suits" aria-hidden="true">&spades; &hearts; &clubs; &diams;</div>
@@ -2290,7 +2923,9 @@ function renderStats() {
       <td>${a.count}</td>
       <td>${a.hours.toFixed(1).replace(/\.0$/, "")}</td>
       <td><span class="${plClass(a.net)}">${fmtSigned(r2(a.net))}</span></td>
+      <td><span class="${plClass(a.roi)}">${a.roi === null ? "—" : fmtPct(a.roi)}</span></td>
       <td><span class="${plClass(a.hourly)}">${a.hours > 0 ? fmtSigned(r2(a.hourly)) : "—"}</span></td>
+      <td><span class="${plClass(a.bbPerHour)}">${a.bbPerHour === null ? "—" : fmtBB(a.bbPerHour)}</span></td>
     </tr>`;
 
   const dd = drawdownSeries(list);
@@ -2321,7 +2956,7 @@ function renderStats() {
       <h2>Results by ${GROUP_COL[statsGroup].toLowerCase()}</h2>
       <div class="table-scroll">
         <table class="stats">
-          <thead><tr><th scope="col">${GROUP_COL[statsGroup]}</th><th scope="col">Sess</th><th scope="col">Hrs</th><th scope="col">Net</th><th scope="col">$/hr</th></tr></thead>
+          <thead><tr><th scope="col">${GROUP_COL[statsGroup]}</th><th scope="col">Sess</th><th scope="col">Hrs</th><th scope="col">Net</th><th scope="col">ROI</th><th scope="col">$/hr</th><th scope="col">BB/hr</th></tr></thead>
           <tbody>
             ${rows.map(r => row(r.k, r.a)).join("")}
             ${row("All", total, "total")}
@@ -2409,19 +3044,23 @@ function buildStatsDoc() {
     weeks[k].sessions++;
   }
   const a = aggregate(sessions);
-  return {
+  const doc = {
     nickname: profile.nickname,
+    photo: safePhoto(profile.photo),   // goes out with the nickname — it's the same "who am I" info
     allTime: { net: r2(a.net), hours: r2(a.hours), sessions: a.count },
     weeks,
-    // Shared with leaguemates — deliberately NO notes and no ids, and no
-    // `hands`: a hand history says how you play, which is nobody's business
-    // but yours. Same line already drawn for notes.
-    sessions: sorted().slice(-150).map(s => ({
+  };
+  // Opt-in only: full session detail — and still deliberately NO notes, no ids
+  // and no `hands`. A hand history says how you play, which is nobody's
+  // business but yours; same line already drawn for notes.
+  if (profile.shareSessions) {
+    doc.sessions = sorted().slice(-150).map(s => ({
       date: s.date, location: s.location, gameType: s.gameType, game: s.game,
       stakes: s.stakes, durationMinutes: s.durationMinutes,
       buyIn: s.buyIn, cashOut: s.cashOut, hourlyFee: s.hourlyFee || 0,
-    })),
-  };
+    }));
+  }
+  return doc;
 }
 async function pushStats(force = false) {
   if (!ME || !profile || !profile.leagueIds.length) return;
@@ -2462,9 +3101,12 @@ function syncLeagueSubs() {
 }
 
 const genCode = () => {
-  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/1/I/L
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/1/I/L — 31 chars
   let c = "";
-  for (let i = 0; i < 6; i++) c += chars[Math.floor(Math.random() * chars.length)];
+  while (c.length < 6) {
+    const buf = crypto.getRandomValues(new Uint8Array(6 - c.length));
+    for (const b of buf) if (b < 248) c += chars[b % 31]; // 248 = 8×31; reject the rest to kill modulo bias
+  }
   return c;
 };
 
@@ -2555,14 +3197,68 @@ function raceHTML(rows) {
   </div></div>`;
 }
 
+/* ---------- everyone's bankroll curve on one set of axes ---------- */
+const CURVE_COLORS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)"];
+
+function leagueCurves(stats) {
+  const rows = [];
+  for (const s of stats) {
+    // our own curve is built from local sessions, so it's here even with sharing off
+    const list = s.uid === ME.uid ? sessions : (Array.isArray(s.sessions) ? s.sessions : []);
+    if (!list.length) continue;
+    const pts = curvePoints(list);
+    rows.push({
+      uid: s.uid, me: s.uid === ME.uid,
+      name: s.uid === ME.uid ? "You" : (s.nickname || "?"),
+      pts, net: pts[pts.length - 1].cum,
+    });
+  }
+  // Color follows the player, never the standings — sorting by uid keeps everyone's
+  // line the same color as the leaderboard reshuffles. Past the palette we stop
+  // handing out hues and fold the rest into one muted "others" bucket.
+  const others = rows.filter(r => !r.me).sort((a, b) => (a.uid < b.uid ? -1 : 1));
+  others.forEach((r, i) => {
+    r.spare = i >= CURVE_COLORS.length;
+    r.color = r.spare ? "var(--muted)" : CURVE_COLORS[i];
+  });
+  const mine = rows.find(r => r.me);
+  if (mine) mine.color = "var(--accent)";
+  return mine ? [mine, ...others] : others;
+}
+
+function curvesCardHTML(series) {
+  if (!series.length) {
+    return `<div class="card">
+      <h2>Bankroll curves</h2>
+      <div class="empty">No curves to draw yet — they show up once someone in the league has logged a session.</div>
+    </div>`;
+  }
+  const named = series.filter(s => !s.spare);
+  const spares = series.length - named.length;
+  return `<div class="card">
+    <h2>Bankroll curves · all-time</h2>
+    <div class="chart-wrap" id="curveWrap"></div>
+    <div class="curve-legend">
+      ${named.map(s => `
+        <button type="button" class="curve-chip ${s.me ? "me" : ""}" data-uid="${esc(s.uid)}">
+          <i style="background:${s.color}"></i>${esc(s.name)}
+          <b class="${plClass(s.net)}">${fmtSigned(r2(s.net))}</b>
+        </button>`).join("")}
+      ${spares ? `<span class="curve-chip"><i style="background:var(--muted)"></i>${spares} more</span>` : ""}
+    </div>
+  </div>`;
+}
+
 /* ---------- player detail (read-only) ---------- */
 function playerCardHTML(p) {
   if (!p) return `<div class="card"><div class="empty">Player not found.</div></div>`;
   const a = p.allTime || { net: 0, hours: 0, sessions: 0 };
   const list = (p.sessions || []).slice().reverse();
+  const capNote = list.length && list.length < a.sessions
+    ? `<p class="lb-note">Showing the ${list.length} most recent of ${a.sessions} sessions.</p>` : "";
   let listHTML;
   if (!list.length) {
-    listHTML = `<div class="empty">No shared sessions yet — they'll appear once ${esc(p.nickname || "this player")} opens the app.</div>`;
+    listHTML = `<div class="empty">No shared sessions — ${esc(p.nickname || "this player")} hasn't turned on session sharing. Only their nickname and totals are shared.</div>`;
   } else {
     let html = "", curMonth = "";
     for (const s of list) {
@@ -2598,10 +3294,12 @@ function playerCardHTML(p) {
     <div class="card">
       <button type="button" class="pl-back" id="backToBoard">&#8249; Back to leaderboard</button>
       <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px">
-        <div class="pl-name">${esc(p.nickname || "?")}</div>
+        <div class="pl-name">${avatarHTML(p.photo, p.nickname, 30)}&nbsp; ${esc(p.nickname || "?")}</div>
         <div class="pl-net ${plClass(a.net)}">${fmtSigned(r2(a.net))} all-time</div>
       </div>
       <div class="pl-sub">${a.sessions} session${a.sessions === 1 ? "" : "s"} · ${(a.hours || 0).toFixed(1).replace(/\.0$/, "")} hrs · ${a.hours > 0 ? fmtSigned(r2(a.net / a.hours)) + "/hr" : "—"}</div>
+      ${capNote}
+      ${list.length > 1 ? `<div class="chart-wrap" id="plChart" style="margin-bottom:16px"></div>` : ""}
       ${listHTML}
     </div>`;
 }
@@ -2637,8 +3335,10 @@ function renderLeague() {
   const wk = currentWeekKey();
 
   if (playerView) {
-    el.innerHTML = chips + playerCardHTML(stats.find(s => s.uid === playerView));
+    const p = stats.find(s => s.uid === playerView);
+    el.innerHTML = chips + playerCardHTML(p);
     bindChips(el);
+    if ($("plChart")) drawChart($("plChart"), curvePoints(p.sessions));
     $("backToBoard")?.addEventListener("click", () => { playerView = null; renderLeague(); });
     return;
   }
@@ -2647,7 +3347,7 @@ function renderLeague() {
     .map(s => {
       const v = key === "all" ? (s.allTime || { net: 0, hours: 0, sessions: 0 })
         : (s.weeks?.[key] || { net: 0, hours: 0, sessions: 0 });
-      return { uid: s.uid, nickname: s.nickname || "?", ...v, hourly: v.hours > 0 ? v.net / v.hours : 0 };
+      return { uid: s.uid, nickname: s.nickname || "?", photo: s.photo, ...v, hourly: v.hours > 0 ? v.net / v.hours : 0 };
     })
     .sort((a, b) => b.net - a.net);
 
@@ -2658,7 +3358,7 @@ function renderLeague() {
         <tbody>
           ${rows.map((r, i) => `
             <tr class="${r.uid === ME.uid ? "me" : ""}" data-uid="${esc(r.uid)}" role="button" aria-label="View ${esc(r.nickname)}'s sessions">
-              <td class="name"><span class="rank ${i === 0 && r.net > 0 ? "r1" : ""}">${i + 1}</span>&nbsp; ${esc(r.nickname)}</td>
+              <td class="name"><span class="rank ${i === 0 && r.net > 0 ? "r1" : ""}">${i + 1}</span>&nbsp; ${avatarHTML(r.photo, r.nickname, 22)}&nbsp; ${esc(r.nickname)}</td>
               <td><span class="${plClass(r.net)}">${fmtSigned(r2(r.net))}</span></td>
               <td>${r.hours.toFixed(1).replace(/\.0$/, "")}</td>
               <td><span class="${plClass(r.hourly)}">${r.hours > 0 ? fmtSigned(r2(r.hourly)) : "—"}</span></td>
@@ -2699,6 +3399,8 @@ function renderLeague() {
         <button type="button" class="btn btn-felt" id="addLeagueBtn">Start another league</button>
       </div>`;
 
+  const series = leagueCurves(stats);
+
   el.innerHTML = chips + `
     <div class="seg stat-seg" role="group" aria-label="Leaderboard range">
       <button type="button" data-lb="week" aria-pressed="${lbMode === "week"}">This week</button>
@@ -2716,8 +3418,9 @@ function renderLeague() {
         <span></span>
         <button type="button" class="leave" id="leaveLeagueBtn">Leave league</button>
       </div>
-    </div>` + addRow;
+    </div>` + curvesCardHTML(series) + addRow;
 
+  if (series.length) drawCurves($("curveWrap"), series);
   bindChips(el);
   bindLeagueForms(el);
   el.querySelectorAll("[data-uid]").forEach(x => x.addEventListener("click", () => { playerView = x.dataset.uid; renderLeague(); }));
@@ -3813,8 +4516,131 @@ $("nickSaveBtn").addEventListener("click", async () => {
   profile.nickname = nick;
   await backend.saveProfile(ME.uid, { nickname: nick });
   await pushStats(true);
+  renderAccount();
   toast("Nickname updated");
 });
+
+// photo + the "most played" lines; the rest of the card is static markup
+function renderAccount() {
+  if (!profile) return;
+  const photo = safePhoto(profile.photo);
+  $("photoPreview").innerHTML = avatarHTML(photo, profile.nickname, 72);
+  $("photoBtn").textContent = photo ? "Change" : "Add photo";
+  $("photoRemoveBtn").hidden = !photo;
+
+  // "1/2 NLHE" rather than bare "NLHE" — the stakes are the half that says what game it was.
+  // Blank stakes are stored as "?", so those fall back to the game on its own.
+  const gameKey = (s) => {
+    const st = (s.stakes || "").trim();
+    const named = st && st !== "?" ? `${st} ${s.game}` : s.game;
+    return s.gameType === "tournament" ? `${named} MTT` : named;
+  };
+  const game = topCount(gameKey);
+  const loc = topCount(s => (s.location || "").trim());
+  const line = (label, value, sub) => `
+    <div>
+      <span class="k">${label}</span>
+      <span class="v">${value}${sub ? `<small>${sub}</small>` : ""}</span>
+    </div>`;
+  const top = (label, t) => line(label, t ? esc(t.key) : "—", t && `${t.count} session${t.count === 1 ? "" : "s"}`);
+  $("acctFacts").innerHTML =
+    top("Most played game", game) +
+    top("Most played location", loc) +
+    line("Member since", memberSince());
+
+  // defaults for the log form
+  const sel = $("defLocation");
+  const choices = locationChoices();
+  sel.innerHTML = `<option value="">No default</option>`
+    + choices.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join("");
+  const canon = choices.find(l => l.toLowerCase() === String(profile.defaultLocation || "").trim().toLowerCase());
+  sel.value = canon || "";
+  $("defStakes").value = profile.defaultStakes || "";
+}
+
+// createdAt only exists on accounts made since sign-up started writing it; for the
+// rest the first logged session is the closest honest answer
+function memberSince() {
+  const ms = Number(profile?.createdAt);
+  if (Number.isFinite(ms) && ms > 0) {
+    return new Date(ms).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  }
+  if (sessions.length) {
+    return parseDate(spanOf(sessions).first).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  }
+  return "—";
+}
+
+/* ---------- appearance ---------- */
+const THEME_KEY = "bankroll.theme";
+function applyTheme(mode) {
+  if (mode === "light" || mode === "dark") document.documentElement.dataset.theme = mode;
+  else delete document.documentElement.dataset.theme;   // back to whatever the OS says
+  document.querySelectorAll("[data-theme-set]").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.themeSet === (mode || "system"))));
+}
+function savedTheme() {
+  try { return localStorage.getItem(THEME_KEY) || "system"; } catch { return "system"; }
+}
+document.querySelectorAll("[data-theme-set]").forEach(b => b.addEventListener("click", () => {
+  const mode = b.dataset.themeSet;
+  try { mode === "system" ? localStorage.removeItem(THEME_KEY) : localStorage.setItem(THEME_KEY, mode); } catch { /* private mode */ }
+  applyTheme(mode);
+  renderActive();   // the charts paint theme colors into their markup, so redraw them
+}));
+applyTheme(savedTheme());
+
+$("defSaveBtn").addEventListener("click", async () => {
+  const defaultLocation = $("defLocation").value;
+  const defaultStakes = $("defStakes").value.trim();
+  profile.defaultLocation = defaultLocation;
+  profile.defaultStakes = defaultStakes;
+  await backend.saveProfile(ME.uid, { defaultLocation, defaultStakes });
+  toast(defaultLocation || defaultStakes ? "Defaults saved" : "Defaults cleared");
+});
+
+$("photoBtn").addEventListener("click", () => $("photoFile").click());
+$("photoFile").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  if (!file.type.startsWith("image/")) return toast("Pick an image file");
+  let data;
+  try { data = await photoDataURL(file); }
+  catch { return toast("Couldn't read that image"); }
+  if (!data) return toast("Couldn't shrink that one small enough — try another");
+  profile.photo = data;
+  await backend.saveProfile(ME.uid, { photo: data });
+  await pushStats(true);
+  renderAccount();
+  toast("Photo updated");
+});
+$("photoRemoveBtn").addEventListener("click", () => {
+  modal("Remove your photo?", "Leaguemates go back to seeing your initial.", [
+    { label: "Remove", kind: "btn-danger", onClick: async () => {
+      profile.photo = "";
+      await backend.saveProfile(ME.uid, { photo: "" });
+      await pushStats(true);
+      renderAccount();
+      toast("Photo removed");
+    }},
+    { label: "Keep it", kind: "btn-ghost" },
+  ]);
+});
+function setShareToggle(on) {
+  $("shareOn").setAttribute("aria-pressed", String(on));
+  $("shareOff").setAttribute("aria-pressed", String(!on));
+}
+async function setShareSessions(on) {
+  if (!profile || profile.shareSessions === on) return;
+  profile.shareSessions = on;
+  setShareToggle(on);
+  await backend.saveProfile(ME.uid, { shareSessions: on });
+  await pushStats(true);
+  toast(on ? "Sharing full session detail" : "Sharing totals only");
+}
+$("shareOn").addEventListener("click", () => setShareSessions(true));
+$("shareOff").addEventListener("click", () => setShareSessions(false));
 $("signOutBtn").addEventListener("click", () => {
   modal("Sign out?", "Your data stays in your account — sign back in anytime.", [
     // Back to the sign-in tab: following an invite link flips the form to
@@ -3824,6 +4650,45 @@ $("signOutBtn").addEventListener("click", () => {
   ]);
 });
 
+/* Two deliberate taps, because nothing here is recoverable. */
+$("deleteAcctBtn").addEventListener("click", () => {
+  const bits = [`${sessions.length} session${sessions.length === 1 ? "" : "s"}`, "your nickname and photo"];
+  if (profile.leagueIds.length) bits.push(`your row in ${profile.leagueIds.length} league${profile.leagueIds.length === 1 ? "" : "s"}`);
+  modal("Delete your account?", `This erases ${bits.join(", ")}. It can't be undone.\n\nIf you want a copy, tap Cancel and export a CSV first.`, [
+    { label: "Continue", kind: "btn-danger", onClick: confirmDeleteAccount },
+    { label: "Cancel", kind: "btn-ghost" },
+  ]);
+});
+function confirmDeleteAccount() {
+  modal("Last chance", "Deleting is permanent. There is no backup and no way to get any of it back.", [
+    { label: "Delete everything", kind: "btn-danger", onClick: doDeleteAccount },
+    { label: "Keep my account", kind: "btn-ghost" },
+  ]);
+}
+async function doDeleteAccount() {
+  const uid = ME.uid;
+  toast("Deleting…");
+  try {
+    // drop off every leaderboard first — those rows live outside our own user doc
+    for (const code of [...profile.leagueIds]) {
+      await backend.leaveLeague(uid, code).catch(() => {});
+    }
+    await backend.deleteAccount(uid);
+    toast("Account deleted");
+  } catch (ex) {
+    // Firebase refuses to delete a login that hasn't authenticated recently. By now the
+    // data is gone, so say plainly what's left and what clears it.
+    if (ex?.code === "auth/requires-recent-login") {
+      modal("Sign in once more to finish",
+        "Your sessions and profile are deleted. Firebase needs a fresh sign-in before it will remove the login itself — sign in again and tap Delete my account to finish.",
+        [{ label: "Sign out", kind: "btn-danger", onClick: () => backend.signOutUser() }]);
+    } else {
+      modal("Couldn't finish deleting", errMsg(ex) + "\n\nSome data may already be gone. Try again once you're back online.",
+        [{ label: "Close", kind: "btn-ghost" }]);
+    }
+  }
+}
+
 /* =====================================================================
    CSV backup
    ===================================================================== */
@@ -3832,6 +4697,7 @@ const csvField = (v) => {
   const s = String(v ?? "");
   return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 };
+const fingerprint = (s) => [s.date, s.durationMinutes, s.buyIn, s.cashOut, s.location || "", s.stakes || ""].join("|");
 function toCSV() {
   const lines = [CSV_HEADERS.join(",")];
   for (const s of sorted()) {
@@ -3894,6 +4760,8 @@ $("importFile").addEventListener("change", async (e) => {
   if (idx.date === -1 || idx.buy_in === -1 || idx.cash_out === -1 || idx.duration_minutes === -1) {
     return toast("Missing columns — export a CSV from this app to see the format");
   }
+  const seen = new Set(sessions.map(fingerprint)); // existing sessions + rows already taken this file
+  let skippedInvalid = 0, skippedDup = 0;
   const parsed = [];
   for (let r = 1; r < rows.length; r++) {
     const g = (k) => idx[k] >= 0 ? (rows[r][idx[k]] ?? "").trim() : "";
@@ -3902,8 +4770,8 @@ $("importFile").addEventListener("change", async (e) => {
     const buyIn = parseFloat(g("buy_in"));
     const cashOut = parseFloat(g("cash_out"));
     const fee = parseFloat(g("hourly_fee"));
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(dur) || dur <= 0 || !Number.isFinite(buyIn) || !Number.isFinite(cashOut)) continue;
-    parsed.push({
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(dur) || dur <= 0 || !Number.isFinite(buyIn) || !Number.isFinite(cashOut)) { skippedInvalid++; continue; }
+    const rec = {
       id: uuid(),
       createdAt: Date.now() + r,
       date,
@@ -3915,16 +4783,24 @@ $("importFile").addEventListener("change", async (e) => {
       buyIn, cashOut,
       hourlyFee: Number.isFinite(fee) && fee > 0 ? fee : 0,
       notes: g("notes"),
-    });
+    };
+    const fp = fingerprint(rec);
+    if (seen.has(fp)) { skippedDup++; continue; }
+    seen.add(fp);
+    parsed.push(rec);
   }
-  if (!parsed.length) return toast("No valid sessions found in that file");
+  const skipBits = [];
+  if (skippedDup) skipBits.push(`${skippedDup} duplicate${skippedDup === 1 ? "" : "s"}`);
+  if (skippedInvalid) skipBits.push(`${skippedInvalid} invalid`);
+  const skipMsg = skipBits.length ? ` Skipped ${skipBits.join(" and ")}.` : "";
+  if (!parsed.length) return toast(skipBits.length ? `Nothing to import.${skipMsg}` : "No valid sessions found in that file");
 
   const apply = async () => {
     for (const s of parsed) await backend.putSession(ME.uid, s);
-    toast(`Imported ${parsed.length} session${parsed.length === 1 ? "" : "s"}`);
+    toast(`Imported ${parsed.length} session${parsed.length === 1 ? "" : "s"}.${skipMsg}`);
   };
   if (sessions.length) {
-    modal(`Import ${parsed.length} sessions?`, `They'll be added alongside the ${sessions.length} you already have.`, [
+    modal(`Import ${parsed.length} session${parsed.length === 1 ? "" : "s"}?`, `They'll be added alongside the ${sessions.length} you already have.${skipMsg}`, [
       { label: "Import", kind: "btn-primary", onClick: apply },
       { label: "Cancel", kind: "btn-ghost" },
     ]);
