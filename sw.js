@@ -1,5 +1,5 @@
 /* Bankroll app-shell cache. Bump VERSION on every deploy that changes index.html. */
-const VERSION = "v2.5.2";
+const VERSION = "v2.6.0";
 const CACHE = `bankroll-${VERSION}`;
 const SHELL = ["./", "index.html", "settle.js", "equity.js", "manifest.webmanifest", "icons/chip-180.png", "icons/chip-192.png", "icons/chip-512.png"];
 

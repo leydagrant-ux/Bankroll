@@ -1033,44 +1033,121 @@
   /* Five across has to fit a 375px phone without wrapping, so the board runs a
      size down from the hole cards — which also reads correctly, since your own
      hand is the thing you're looking at. */
-  .board-cards .pcard { width: 44px; height: 60px; }
-  .board-cards .pcard .r { font-size: 19px; }
-  .board-cards .pcard.slot .r { font-size: 13px; }
-  .board-cards .pcard .s { font-size: 14px; }
   .board-gap { width: 4px; }
 
-  /* Two-step picker: rank, then suit. Thirteen ranks across a phone gave 21px
-     targets — unhittable. Seven across gives ~44px, which is the real minimum. */
-  .picker-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  /* The whole deck on screen at once, a row per suit. Thirteen across a phone
+     is tight, so the buttons buy height instead — a 34px-tall target is a
+     comfortable thumb even when it's only 23px wide. */
+  .picker-grid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; }
   .picker-grid button {
-    padding: 13px 0; border-radius: 8px; font-size: 17px; font-weight: 750;
+    padding: 10px 0; border-radius: 5px; font-size: 14px; font-weight: 750;
     border: 1px solid rgba(0,0,0,0.22); background: #fffdf6; color: #16150f;
     line-height: 1;
   }
-  .picker-suits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .picker-suits button {
-    padding: 16px 0; border-radius: 10px; font-size: 26px; line-height: 1;
-    border: 1px solid rgba(0,0,0,0.22); background: #fffdf6; color: #16150f;
+  .picker-grid button.red { color: #c0242c; }
+  .picker-grid button[disabled] { opacity: 0.2; }
+  .picker-suit {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 15px; font-weight: 700; margin: 10px 0 4px; color: var(--ink-2);
   }
-  .picker-suits button.red { color: #c0242c; }
-  .picker-grid button[disabled], .picker-suits button[disabled] { opacity: 0.24; }
-  .picker-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  .picker-head .lbl { flex: 1; min-width: 0; font-size: 13px; font-weight: 650; }
+  .picker-suit.red { color: #c0242c; }
+  .picker-suit:first-child { margin-top: 0; }
 
-  .seat {
-    border: 1px solid var(--hairline); border-radius: 12px;
-    padding: 10px 12px; background: var(--surface-2);
-    display: flex; flex-direction: column; gap: 8px;
+  /* ---------- the table ---------- */
+  .ptable { position: relative; width: 100%; height: 384px; }
+  .ptable .felt {
+    position: absolute; inset: 2%;
+    /* A rounded rectangle, not an ellipse. An ellipse is narrowest exactly
+       where the top row of seats sits, so wide name labels hung off the edge
+       no matter how far the arc was pulled in. */
+    border-radius: 32% / 30%;
+    background: radial-gradient(120% 100% at 50% 0%, var(--felt-hi) 0%, var(--felt) 70%);
+    border: 3px solid var(--rail);
+    box-shadow: inset 0 0 34px rgba(0, 0, 0, 0.4), var(--shadow);
   }
-  .seat.hero { border-color: var(--accent); background: var(--accent-wash); }
-  .seat-head { display: flex; align-items: center; gap: 8px; }
-  .seat-head .lbl { font-size: 12.5px; font-weight: 700; flex: 1; min-width: 0; }
-  .eqbar {
-    height: 6px; border-radius: 999px; background: var(--grid); overflow: hidden;
+  .pboard {
+    position: absolute; left: 50%; top: 56%;
+    transform: translate(-50%, -50%);
+    display: flex; gap: 3px; align-items: center;
   }
-  .eqbar i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
-  .seat.hero .eqbar i { background: var(--win); }
-  .eq-pct { font-size: 14px; font-weight: 750; font-variant-numeric: tabular-nums; flex: none; }
+  .pboard-lbl {
+    position: absolute; left: 50%; top: 56%;
+    transform: translate(-50%, -46px);
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--felt-muted); white-space: nowrap;
+  }
+  /* NB: your own seat is .me, never .hero — .hero is already the dashboard's
+     felt card, and reusing it here dragged in a rail border, padding and
+     overflow:hidden that boxed the player in and clipped the cards. */
+  .pseat {
+    position: absolute;
+    /* Clamped so a seat out on the arc can never hang off the table edge. */
+    left: clamp(calc(var(--seat-w, 86px) / 2 + 2px), var(--x, 50%),
+                calc(100% - var(--seat-w, 86px) / 2 - 2px));
+    transform: translate(-50%, -50%);
+    width: var(--seat-w, 86px); text-align: center;
+    padding-top: 17px;   /* a band for the remove button, clear of the name */
+  }
+  /* Opponent seats shrink as the table fills up — five across a 343px phone
+     can't each keep the full width. Your own seat never shrinks. */
+  .pseat:not(.me) .pcard.tbl {
+    width: var(--card-w, 30px); height: var(--card-h, 41px);
+  }
+  .pseat:not(.me) .pcard.tbl .r { font-size: var(--card-r, 14px); }
+  .pseat:not(.me) .pcard.tbl .s { font-size: var(--card-s, 10px); }
+  .pseat:not(.me) .pct { font-size: var(--seat-pct, 14px); }
+  /* Your seat is pinned to the bottom rail rather than placed on the arc —
+     it's the tallest, and centring it on an ellipse pushed it off the table. */
+  .pseat.me {
+    --seat-w: 128px;
+    /* Far enough up that the percentage bar stays on the felt, not on the
+       rail below it. */
+    left: 50%; top: auto; bottom: 26px;
+    transform: translateX(-50%);
+    padding-top: 0;
+  }
+  .pseat .who {
+    font-size: 10px; font-weight: 750; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--felt-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .pseat .cards { display: flex; justify-content: center; gap: 3px; margin: 3px 0 2px; }
+  .pseat .pct {
+    font-size: 14px; font-weight: 800; color: var(--felt-ink);
+    font-variant-numeric: tabular-nums; line-height: 1.1;
+  }
+  .pseat .pctbar {
+    height: 3px; border-radius: 999px; background: rgba(0, 0, 0, 0.35);
+    margin: 3px auto 0; width: calc(100% - 16px); overflow: hidden;
+  }
+  .pseat .pctbar i { display: block; height: 100%; background: var(--felt-muted); }
+  /* The felt is dark in both themes, so anything sitting on it uses the felt
+     palette — --accent is a dark gold in light mode and disappears here. */
+  .pseat.me .who { color: var(--tab-active); }
+  .pseat.me .pct { color: #ffe9a8; }
+  .pseat.me .pctbar i { background: var(--tab-active); }
+  .pseat .drop {
+    position: absolute; top: -1px; right: 50%;
+    transform: translateX(50%);
+    width: 22px; height: 22px; padding: 0; line-height: 1;
+    border-radius: 50%; font-size: 12px;
+    background: rgba(0, 0, 0, 0.5); color: var(--felt-ink);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+  }
+  /* Cards on the felt: small, but still legible playing cards. */
+  .pcard.tbl { width: 30px; height: 41px; border-radius: 5px; }
+  .pcard.tbl .r { font-size: 14px; }
+  .pcard.tbl .s { font-size: 10px; }
+  .pcard.tbl.slot { border-color: rgba(255, 255, 255, 0.32); color: var(--felt-muted); }
+  .pcard.tbl.slot .r { font-size: 9px; }
+  .pcard.tbl.sel { border-color: var(--tab-active); box-shadow: 0 0 0 3px rgba(230, 201, 111, 0.5); }
+  .muck-btn {
+    margin-top: 4px; font-size: 9.5px; padding: 3px 6px; border-radius: 6px;
+    max-width: 100%; white-space: nowrap;
+    background: rgba(0, 0, 0, 0.45); color: var(--felt-muted);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+  }
+
   .eq-note { font-size: 11.5px; color: var(--muted); }
 
   .hand-row {
@@ -1118,6 +1195,10 @@
     padding: 14px 16px;
     display: flex; flex-direction: column; gap: 14px;
   }
+  /* Column flex children shrink by default, and in a scrolling sheet that
+     silently crushes the tallest ones — which is why the hero's hand collapsed
+     to a clipped sliver. Nothing in this sheet may shrink; it scrolls instead. */
+  .sheet-body > * { flex: 0 0 auto; }
   .sheet-foot {
     padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--hairline);
@@ -3987,7 +4068,6 @@ const STREET_NAMES = ["Preflop", "Flop", "Turn", "River"];
 
 let hand = null;       // the hand being built
 let pickTarget = null; // { kind: "hero"|"board"|"villain", i, j } slot awaiting a card
-let pickRank = null;   // rank chosen in step one of the picker, awaiting a suit
 let eqTimer = null;
 
 const blankHand = () => ({
@@ -4006,7 +4086,6 @@ const blankHand = () => ({
 function openHandSheet(existing) {
   hand = existing ? JSON.parse(JSON.stringify(existing)) : blankHand();
   pickTarget = { kind: "hero", j: 0 };
-  pickRank = null;
   $("handSheet").hidden = false;
   renderHandSheet();
 }
@@ -4014,7 +4093,6 @@ function closeHandSheet() {
   $("handSheet").hidden = true;
   hand = null;
   pickTarget = null;
-  pickRank = null;
   if (eqTimer) { clearTimeout(eqTimer); eqTimer = null; }
 }
 $("handCloseBtn").addEventListener("click", closeHandSheet);
@@ -4034,13 +4112,6 @@ const cardFace = (c, cls = "") => {
   const s = parseCard(c);
   return `<span class="pcard ${cls} ${SUIT_IS_RED[s & 3] ? "red" : ""}"
     ><span class="r">${RANK_CHARS[s >> 2]}</span><span class="s">${SUIT_SYMBOLS[s & 3]}</span></span>`;
-};
-
-const cardChip = (c, sel, attrs) => {
-  if (!c) return `<button type="button" class="pcard slot ${sel ? "sel" : ""}" ${attrs}><span class="r">Tap</span></button>`;
-  const s = parseCard(c);
-  return `<button type="button" class="pcard ${SUIT_IS_RED[s & 3] ? "red" : ""} ${sel ? "sel" : ""}" ${attrs}
-    ><span class="r">${RANK_CHARS[s >> 2]}</span><span class="s">${SUIT_SYMBOLS[s & 3]}</span></button>`;
 };
 
 const targetIs = (kind, j, i) =>
@@ -4066,38 +4137,9 @@ function renderHandSheet() {
       </div>
     </div>
 
-    <div class="seat hero">
-      <div class="seat-head">
-        <div class="lbl">Your hand${hand.position ? ` · ${esc(hand.position)}` : ""}</div>
-        <div class="eq-pct" id="eqHero">—</div>
-      </div>
-      <div class="hand-cards">
-        ${hand.hero.map((c, j) => cardChip(c, targetIs("hero", j), `data-slot="hero" data-j="${j}"`)).join("")}
-      </div>
-      <div class="eqbar"><i id="eqHeroBar" style="width:0%"></i></div>
-      <div class="eq-note" id="eqHeroNote"></div>
-    </div>
+    ${tableHTML(boardCount)}
 
-    <div class="field">
-      <label>Board <span style="font-weight:400;color:var(--muted)">(${boardCount ? STREET_NAMES[Math.max(0, boardCount - 2)] : "preflop"})</span></label>
-      <div class="hand-cards board-cards">
-        ${hand.board.map((c, j) => `${j === 3 || j === 4 ? '<span class="board-gap"></span>' : ""}${cardChip(c, targetIs("board", j), `data-slot="board" data-j="${j}"`)}`).join("")}
-      </div>
-    </div>
-
-    ${hand.villains.map((v, i) => `
-      <div class="seat">
-        <div class="seat-head">
-          <div class="lbl">Opponent ${i + 1}${v.position ? " · " + esc(v.position) : ""}</div>
-          <div class="eq-pct" id="eqV${i}">—</div>
-          <button type="button" class="btn-sm" data-drop="${i}" aria-label="Remove opponent ${i + 1}">✕</button>
-        </div>
-        <div class="hand-cards">
-          ${v.cards.map((c, j) => cardChip(c, targetIs("villain", j, i), `data-slot="villain" data-i="${i}" data-j="${j}"`)).join("")}
-          ${v.cards.some(Boolean) ? `<button type="button" class="btn-sm" data-muck="${i}">Never saw it</button>` : `<span class="eq-note">Unknown — played as a random hand</span>`}
-        </div>
-        <div class="eqbar"><i id="eqV${i}Bar" style="width:0%"></i></div>
-      </div>`).join("")}
+    <div class="eq-note" id="eqHeroNote" style="text-align:center;margin-top:-6px"></div>
 
     ${hand.villains.length < 5 ? `<button type="button" class="btn btn-ghost" id="addVillainBtn">Add another opponent</button>` : ""}
 
@@ -4122,45 +4164,134 @@ function renderHandSheet() {
   scheduleEquity();
 }
 
+/**
+ * The hand as a table you can read at a glance: you at the bottom, opponents
+ * around the top arc, the board on the felt between them, and every seat's win
+ * percentage under its cards. Seats are placed on an ellipse — hero fixed at
+ * the bottom, villains spread evenly across the top — so two opponents sit
+ * opposite each other and five fan out without colliding.
+ */
+function tableHTML(boardCount) {
+  // Villains ride an arc above the board; hero is pinned to the bottom in CSS.
+  // The arc sits high and shallow so the widest seats clear the board box, and
+  // it widens (with narrower seats) as opponents are added — the tightest gap
+  // between adjacent seats on an arc is at its ends, which is what has to fit.
+  const n = hand.villains.length;
+  const TIER = n >= 5 ? { w: 58, cw: 25, ch: 34, r: 12, s: 9, pct: 12.5 }
+    : n === 4 ? { w: 74, cw: 28, ch: 38, r: 13, s: 9.5, pct: 13.5 }
+    : { w: 88, cw: 30, ch: 41, r: 14, s: 10, pct: 14 };
+
+  // Seats are spaced evenly across the usable width and *then* arced
+  // vertically, rather than placed at even angles on an ellipse. Equal angles
+  // bunch up at the ends of an arc, which is exactly where the edge clamp
+  // pushes them back together — five seats collided every time. Even spacing
+  // is collision-free by construction: the gap is the width divided by n.
+  const CY = 40, RY = 20;
+  // The felt is inset 2% and its corners are rounded, so the usable band is
+  // narrower than the container: half a seat, plus clearance for the corner
+  // curve, inside the felt edge. Measuring from the container instead is what
+  // left the outermost seats hanging over the rail.
+  const half = 2 + (TIER.w / 2 + 14) / 343 * 100;
+  const x0 = half, x1 = 100 - half;
+  const at = (i) => {
+    const f = n === 1 ? 0.5 : i / (n - 1);
+    const x = n === 1 ? 50 : x0 + f * (x1 - x0);
+    // Middle seats ride highest; the ones out at the sides drop toward the
+    // widest part of the felt, which is both what keeps them on it and what
+    // makes this read as a table rather than a row.
+    const lift = n === 1 ? 0.9 : 0.45 + 0.55 * Math.sin(Math.PI * f);
+    return `--x:${x.toFixed(2)}%;top:${(CY - RY * lift).toFixed(2)}%`;
+  };
+  const tableVars = `--seat-w:${TIER.w}px;--card-w:${TIER.cw}px;--card-h:${TIER.ch}px;`
+    + `--card-r:${TIER.r}px;--card-s:${TIER.s}px;--seat-pct:${TIER.pct}px`;
+
+  const seatCards = (cards, slotAttrs, unknownOk) => {
+    const known = cards.some(Boolean);
+    return cards.map((c, j) => {
+      const sel = slotAttrs.sel(j);
+      if (!c) {
+        return `<button type="button" class="pcard tbl slot ${sel ? "sel" : ""}" ${slotAttrs.attr(j)}
+          ><span class="r">${unknownOk && !known ? "?" : "Tap"}</span></button>`;
+      }
+      const s = parseCard(c);
+      return `<button type="button" class="pcard tbl ${SUIT_IS_RED[s & 3] ? "red" : ""} ${sel ? "sel" : ""}" ${slotAttrs.attr(j)}
+        ><span class="r">${RANK_CHARS[s >> 2]}</span><span class="s">${SUIT_SYMBOLS[s & 3]}</span></button>`;
+    }).join("");
+  };
+
+  const hero = `
+    <div class="pseat me">
+      <div class="who">You${hand.position ? " · " + esc(hand.position) : ""}</div>
+      <div class="cards">${seatCards(hand.hero, {
+        sel: (j) => targetIs("hero", j),
+        attr: (j) => `data-slot="hero" data-j="${j}"`,
+      }, false)}</div>
+      <div class="pct" id="eqHero">—</div>
+      <div class="pctbar"><i id="eqHeroBar" style="width:0%"></i></div>
+    </div>`;
+
+  const villains = hand.villains.map((v, i) => {
+    const known = v.cards.some(Boolean);
+    return `
+      <div class="pseat" style="${at(i)}">
+        <button type="button" class="drop" data-drop="${i}" aria-label="Remove opponent ${i + 1}">✕</button>
+        <div class="who">Opp ${i + 1}</div>
+        <div class="cards">${seatCards(v.cards, {
+          sel: (j) => targetIs("villain", j, i),
+          attr: (j) => `data-slot="villain" data-i="${i}" data-j="${j}"`,
+        }, true)}</div>
+        <div class="pct" id="eqV${i}">—</div>
+        <div class="pctbar"><i id="eqV${i}Bar" style="width:0%"></i></div>
+        ${known ? `<button type="button" class="muck-btn" data-muck="${i}">Never saw it</button>` : ""}
+      </div>`;
+  }).join("");
+
+  const board = hand.board.map((c, j) => {
+    const sel = targetIs("board", j);
+    const attr = `data-slot="board" data-j="${j}"`;
+    if (!c) return `<button type="button" class="pcard tbl slot ${sel ? "sel" : ""}" ${attr}><span class="r">Tap</span></button>`;
+    const s = parseCard(c);
+    return `<button type="button" class="pcard tbl ${SUIT_IS_RED[s & 3] ? "red" : ""} ${sel ? "sel" : ""}" ${attr}
+      ><span class="r">${RANK_CHARS[s >> 2]}</span><span class="s">${SUIT_SYMBOLS[s & 3]}</span></button>`;
+  }).join("");
+
+  return `
+    <div class="ptable" style="${tableVars}">
+      <div class="felt"></div>
+      <div class="pboard-lbl">${boardCount ? esc(STREET_NAMES[Math.max(0, boardCount - 2)]) : "Preflop"}</div>
+      <div class="pboard">${board}</div>
+      ${villains}
+      ${hero}
+    </div>`;
+}
+
 function renderPicker() {
   const used = usedCards();
-  const label = !pickTarget ? "Tap a card above to set it"
+  const label = !pickTarget ? "Tap a card on the table"
     : pickTarget.kind === "hero" ? `Your card ${pickTarget.j + 1}`
     : pickTarget.kind === "board" ? `Board card ${pickTarget.j + 1}`
     : `Opponent ${pickTarget.i + 1} · card ${pickTarget.j + 1}`;
-  $("pickerLbl").textContent = pickRank ? `${label} — pick a suit` : label;
+  $("pickerLbl").textContent = label;
 
   if (!pickTarget) {
-    $("pickerBody").innerHTML = `<p class="note-row" style="margin:0">Nothing selected.</p>`;
+    $("pickerBody").innerHTML = `<p class="note-row" style="margin:0">Tap any card on the table to set or change it.</p>`;
     return;
   }
 
-  if (!pickRank) {
-    $("pickerBody").innerHTML = `<div class="picker-grid">
-      ${RANK_CHARS.split("").map(rc => {
-        // Grey out a rank only when all four of its suits are already dealt.
-        const gone = SUIT_CHARS.split("").every(sc => used.has(rc + sc));
-        return `<button type="button" data-rank="${rc}" ${gone ? "disabled" : ""}>${rc}</button>`;
-      }).join("")}
-    </div>`;
-    $("pickerBody").querySelectorAll("[data-rank]").forEach(b =>
-      b.addEventListener("click", () => { pickRank = b.dataset.rank; renderPicker(); }));
-    return;
-  }
-
-  $("pickerBody").innerHTML = `
-    <div class="picker-head">
-      <div class="lbl">${pickRank} of…</div>
-      <button type="button" class="btn-sm" id="pickBackBtn">Change rank</button>
+  // Whole deck, a row per suit — one tap per card, nothing hidden behind a
+  // second step.
+  $("pickerBody").innerHTML = SUIT_CHARS.split("").map((sc, s) => `
+    <div class="picker-suit ${SUIT_IS_RED[s] ? "red" : ""}">
+      <span>${SUIT_SYMBOLS[s]}</span>
+      <span style="font-size:11px;font-weight:600;color:var(--muted)">${["Spades", "Hearts", "Diamonds", "Clubs"][s]}</span>
     </div>
-    <div class="picker-suits">
-      ${SUIT_CHARS.split("").map((sc, s) => {
-        const code = pickRank + sc;
+    <div class="picker-grid">
+      ${RANK_CHARS.split("").map(rc => {
+        const code = rc + sc;
         return `<button type="button" class="${SUIT_IS_RED[s] ? "red" : ""}" data-card="${code}" ${used.has(code) ? "disabled" : ""}
-          aria-label="${pickRank} of ${["spades", "hearts", "diamonds", "clubs"][s]}">${SUIT_SYMBOLS[s]}</button>`;
+          aria-label="${rc} of ${["spades", "hearts", "diamonds", "clubs"][s]}">${rc}</button>`;
       }).join("")}
-    </div>`;
-  $("pickBackBtn").addEventListener("click", () => { pickRank = null; renderPicker(); });
+    </div>`).join("");
   $("pickerBody").querySelectorAll("[data-card]").forEach(b =>
     b.addEventListener("click", () => placeCard(b.dataset.card)));
 }
@@ -4171,7 +4302,6 @@ function placeCard(code) {
   if (t.kind === "hero") hand.hero[t.j] = code;
   else if (t.kind === "board") hand.board[t.j] = code;
   else hand.villains[t.i].cards[t.j] = code;
-  pickRank = null;
   advanceTarget();
   renderHandSheet();
 }
@@ -4209,7 +4339,6 @@ function bindHandSheet() {
       else hand.villains[i].cards[j] = null;
     }
     pickTarget = kind === "villain" ? { kind, i, j } : { kind, j };
-    pickRank = null;
     renderHandSheet();
     // The picker lives below the seats; on a phone it's off-screen when you
     // tap a slot near the top. "nearest" leaves it alone when it's already
