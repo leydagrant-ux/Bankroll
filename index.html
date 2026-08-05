@@ -1004,34 +1004,58 @@
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 
   /* ---------- cards & hand logger ---------- */
+  /* Playing cards, at something like real proportions so two of them read as
+     a hand rather than as two chips. */
   .pcard {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-width: 30px; height: 40px; padding: 0 5px;
+    display: inline-flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1px;
+    width: 50px; height: 68px; padding: 0;
     background: #fffdf6; color: #16150f;
-    border: 1px solid rgba(0,0,0,0.28); border-radius: 5px;
-    font-size: 16px; font-weight: 750; line-height: 1;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.22);
+    border: 1px solid rgba(0,0,0,0.28); border-radius: 7px;
+    font-weight: 750; line-height: 1;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.24);
     font-variant-numeric: tabular-nums;
   }
+  .pcard .r { font-size: 22px; letter-spacing: -0.02em; }
+  .pcard .s { font-size: 16px; }
   .pcard.red { color: #c0242c; }
   .pcard.slot {
     background: transparent; color: var(--muted);
-    border: 1px dashed var(--hairline); box-shadow: none; font-weight: 500;
+    border: 1.5px dashed var(--hairline); box-shadow: none; font-weight: 600;
   }
-  .pcard.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .hand-cards { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .pcard.slot .r { font-size: 15px; }
+  .pcard.sel { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+  /* Compact variant for the saved-hands list, where they're just a reminder. */
+  .pcard.mini { width: 26px; height: 34px; border-radius: 4px; }
+  .pcard.mini .r { font-size: 13px; }
+  .pcard.mini .s { font-size: 10px; }
+  .hand-cards { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  /* Five across has to fit a 375px phone without wrapping, so the board runs a
+     size down from the hole cards — which also reads correctly, since your own
+     hand is the thing you're looking at. */
+  .board-cards .pcard { width: 44px; height: 60px; }
+  .board-cards .pcard .r { font-size: 19px; }
+  .board-cards .pcard.slot .r { font-size: 13px; }
+  .board-cards .pcard .s { font-size: 14px; }
+  .board-gap { width: 4px; }
 
-  .picker-grid {
-    display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px;
-  }
+  /* Two-step picker: rank, then suit. Thirteen ranks across a phone gave 21px
+     targets — unhittable. Seven across gives ~44px, which is the real minimum. */
+  .picker-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
   .picker-grid button {
-    padding: 6px 0; border-radius: 5px; font-size: 12.5px; font-weight: 700;
+    padding: 13px 0; border-radius: 8px; font-size: 17px; font-weight: 750;
     border: 1px solid rgba(0,0,0,0.22); background: #fffdf6; color: #16150f;
     line-height: 1;
   }
-  .picker-grid button.red { color: #c0242c; }
-  .picker-grid button[disabled] { opacity: 0.26; }
-  .picker-suit { font-size: 11px; color: var(--muted); font-weight: 700; margin: 8px 0 3px; }
+  .picker-suits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .picker-suits button {
+    padding: 16px 0; border-radius: 10px; font-size: 26px; line-height: 1;
+    border: 1px solid rgba(0,0,0,0.22); background: #fffdf6; color: #16150f;
+  }
+  .picker-suits button.red { color: #c0242c; }
+  .picker-grid button[disabled], .picker-suits button[disabled] { opacity: 0.24; }
+  .picker-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .picker-head .lbl { flex: 1; min-width: 0; font-size: 13px; font-weight: 650; }
 
   .seat {
     border: 1px solid var(--hairline); border-radius: 12px;
@@ -1443,6 +1467,20 @@
   </nav>
 </div>
 
+<div class="sheet-back" id="finishSheet" role="dialog" aria-modal="true" aria-labelledby="finishSheetTitle" hidden>
+  <div class="sheet">
+    <div class="sheet-top">
+      <h3 id="finishSheetTitle">Finish session</h3>
+      <button type="button" class="btn-sm" id="finishCancelBtn">Back</button>
+    </div>
+    <div class="sheet-body" id="finishBody"></div>
+    <div class="sheet-foot">
+      <div class="live-profit" style="margin-bottom:10px"><span>Result</span><output id="finishResult">—</output></div>
+      <button type="button" class="btn btn-primary" id="finishSaveBtn">Save to my sessions</button>
+    </div>
+  </div>
+</div>
+
 <div class="sheet-back" id="handSheet" role="dialog" aria-modal="true" aria-labelledby="handSheetTitle" hidden>
   <div class="sheet">
     <div class="sheet-top">
@@ -1470,7 +1508,7 @@
 
 import { settleUp } from "./settle.js";
 import {
-  equity, evaluate, handName, parseCard, cardLabel,
+  equity, evaluate, handName, parseCard,
   RANK_CHARS, SUIT_CHARS, SUIT_SYMBOLS, SUIT_IS_RED,
 } from "./equity.js";
 
@@ -2018,8 +2056,31 @@ const AUTH_ERRORS = {
   "auth/wrong-password": "Wrong email or password.",
   "auth/too-many-requests": "Too many tries — wait a minute and try again.",
   "league/not-found": "No league with that code. Double-check it with whoever made it.",
+  "game/not-found": "No game with that code. Double-check it with the host.",
 };
 const errMsg = (e) => AUTH_ERRORS[e?.code] || e?.message || "Something went wrong — try again.";
+
+/**
+ * Home games live in a Firestore collection the security rules have to know
+ * about. If `firestore.rules` hasn't been published since home games shipped,
+ * every write here comes back permission-denied — which looks like an app bug
+ * and isn't one, so say what it actually is.
+ */
+const isPermissionError = (e) =>
+  e?.code === "permission-denied" || /permission|insufficient/i.test(e?.message || "");
+
+function gameError(e) {
+  if (!isPermissionError(e)) return toast(errMsg(e));
+  modal("Home games aren't switched on yet",
+    "Firebase is still running the old security rules, which don't know about home games, so it's refusing to create one.\n\n" +
+    "Fix it once, in the Firebase console:\n" +
+    "1. Open console.firebase.google.com → the bankroll-755eb project\n" +
+    "2. Firestore Database → Rules\n" +
+    "3. Paste in the contents of firestore.rules from the repo\n" +
+    "4. Publish\n\n" +
+    "Everything else in the app keeps working in the meantime.",
+    [{ label: "Got it", kind: "btn-primary" }]);
+}
 
 $("authForm").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -2664,26 +2725,26 @@ function renderHandsCard(hands) {
   const card = $("handsCard");
   if (!hands || !hands.length) { card.hidden = true; return; }
   card.hidden = false;
-  $("handsList").innerHTML = hands.map((h) => {
+  renderHandsInto($("handsList"), hands);
+}
+
+/** Shared by the edit form's hands card and the finish sheet's summary. */
+function renderHandsInto(el, hands) {
+  el.innerHTML = hands.map((h) => {
     const eq = h.equity && h.equity.length ? `${h.equity[0].toFixed(1)}% to win` : "";
-    const cards = (h.hero || []).map(c => {
-      const s = parseCard(c);
-      return `<span class="pcard ${SUIT_IS_RED[s & 3] ? "red" : ""}" style="height:26px;min-width:22px;font-size:12.5px">${cardLabel(s)}</span>`;
-    }).join("");
-    const board = (h.board || []).map(c => {
-      const s = parseCard(c);
-      return `<span class="pcard ${SUIT_IS_RED[s & 3] ? "red" : ""}" style="height:22px;min-width:18px;font-size:11px">${cardLabel(s)}</span>`;
-    }).join("");
+    const cards = (h.hero || []).map(c => cardFace(c, "mini")).join("");
+    const board = (h.board || []).map(c => cardFace(c, "mini")).join("");
     const res = h.result === null || h.result === undefined || h.result === ""
       ? "" : `<div class="pamt"><div class="big ${plClass(h.result)}">${fmtSigned(h.result)}</div></div>`;
     return `
       <div class="hand-row">
         <div class="hmain">
-          <div class="hand-cards">${cards}<span class="eq-note" style="margin-left:4px">${esc(h.position || "")}</span></div>
-          <div class="hsub">
-            ${board ? `<span class="hand-cards" style="display:inline-flex;vertical-align:middle;gap:3px">${board}</span> · ` : ""}
-            ${eq}${h.note ? " · " + esc(h.note) : ""}
+          <div class="hand-cards" style="gap:4px">
+            ${cards}
+            ${board ? `<span class="board-gap"></span>${board}` : ""}
+            <span class="eq-note" style="margin-left:2px">${esc(h.position || "")}</span>
           </div>
+          <div class="hsub">${eq}${h.note ? " · " + esc(h.note) : ""}</div>
         </div>
         ${res}
       </div>`;
@@ -3599,44 +3660,248 @@ $("timerHandBtn").addEventListener("click", () => openHandSheet());
 
 $("timerStopBtn").addEventListener("click", () => {
   if (!running) return;
-  const mins = Math.max(1, Math.round(elapsedMs(running) / 60000));
-  modal(`Finish after ${fmtDur(mins)}?`,
-    running.hands.length
-      ? `${running.hands.length} hand${running.hands.length === 1 ? "" : "s"} logged. We'll fill in the session form — you add the money.`
-      : "We'll fill in the session form — you add the money.",
-    [
-      { label: "Finish up", kind: "btn-primary", onClick: () => finishTimer(mins) },
-      { label: "Discard the session", kind: "btn-danger", onClick: () => {
-        modal("Throw away the clock?", "The time and any hands you logged go with it.", [
-          { label: "Throw it away", kind: "btn-danger", onClick: () => { persistTimer(null); toast("Discarded"); } },
-          { label: "Keep it running", kind: "btn-ghost" },
-        ]);
-      }},
-      { label: "Keep playing", kind: "btn-ghost" },
-    ]);
+  openFinishSheet();
 });
 
-function finishTimer(mins) {
-  const r = running;
-  const started = r.bankedMs > 0 || r.pausedAt !== null ? r.startedAt - r.bankedMs : r.startedAt;
-  pendingTimer = { startedAt: started, endedAt: Date.now(), hands: r.hands };
-  persistTimer(null);
+/**
+ * The finish screen. Everything the session will be saved as, on one sheet,
+ * with the two numbers the clock can't know — buy-in and cash-out — sitting at
+ * the top where they can't be missed. Confirming writes the session; there's
+ * no second step to forget.
+ */
+let finishDraft = null;
 
-  editingId = null;
-  showView("add"); // resets the form, so everything below has to come after
-  $("fDate").value = todayISO();
-  $("fHours").value = Math.floor(mins / 60);
-  $("fMinutes").value = mins % 60;
-  if (r.location) {
-    const canon = locationChoices().find(l => l.toLowerCase() === r.location.toLowerCase());
-    refreshLocationOptions(canon || OTHER_LOC);
-    if (!canon) $("fLocationOther").value = r.location;
-    syncLocOther();
-  }
-  if (r.stakes) $("fStakes").value = r.stakes;
-  updateLiveProfit();
-  toast(`${fmtDur(mins)} logged — add your buy-in and cash-out`);
+function openFinishSheet() {
+  const r = running;
+  const mins = Math.max(1, Math.round(elapsedMs(r) / 60000));
+  // startedAt has been rebased by every pause, so walk back over the banked
+  // time to recover when the session actually began.
+  const started = r.bankedMs > 0 || r.pausedAt !== null ? r.startedAt - r.bankedMs : r.startedAt;
+  const canon = r.location
+    ? locationChoices().find(l => l.toLowerCase() === r.location.toLowerCase()) : null;
+
+  finishDraft = {
+    date: todayISO(),
+    location: canon || (r.location ? OTHER_LOC : PRESET_LOCATIONS[0]),
+    locationOther: canon ? "" : (r.location || ""),
+    gameType: "cash",
+    game: "NLHE",
+    stakes: r.stakes || "",
+    hours: Math.floor(mins / 60),
+    minutes: mins % 60,
+    buyIn: "",
+    cashOut: "",
+    fee: "",
+    notes: "",
+    startedAt: started,
+    endedAt: Date.now(),
+    hands: r.hands,
+  };
+  $("finishSheet").hidden = false;
+  renderFinishSheet();
 }
+
+function closeFinishSheet() {
+  $("finishSheet").hidden = true;
+  finishDraft = null;
+}
+
+function renderFinishSheet() {
+  const d = finishDraft;
+  const opts = locationChoices()
+    .map(l => `<option value="${esc(l)}" ${d.location === l ? "selected" : ""}>${esc(l)}</option>`)
+    .join("") + `<option value="${OTHER_LOC}" ${d.location === OTHER_LOC ? "selected" : ""}>Other…</option>`;
+
+  $("finishBody").innerHTML = `
+    <div class="card" style="padding:14px">
+      <h2>How'd it go?</h2>
+      <div class="two-col">
+        <div class="field">
+          <label for="xBuyIn">Buy-in</label>
+          <div class="money-input"><span>$</span><input type="number" id="xBuyIn" min="0" step="0.01" inputmode="decimal" value="${esc(d.buyIn)}" placeholder="0"></div>
+        </div>
+        <div class="field">
+          <label for="xCashOut">Cash-out</label>
+          <div class="money-input"><span>$</span><input type="number" id="xCashOut" min="0" step="0.01" inputmode="decimal" value="${esc(d.cashOut)}" placeholder="0"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px">
+      <h2>The session</h2>
+      <div class="form-grid">
+        <div class="two-col">
+          <div class="field"><label for="xDate">Date</label>
+            <input type="date" id="xDate" value="${esc(d.date)}"></div>
+          <div class="field"><label for="xLocation">Location</label>
+            <select id="xLocation">${opts}</select></div>
+        </div>
+        <div class="field" id="xLocOtherField" ${d.location === OTHER_LOC ? "" : "hidden"}>
+          <label for="xLocationOther">Name the spot</label>
+          <input type="text" id="xLocationOther" maxlength="40" value="${esc(d.locationOther)}" placeholder="e.g. Mike's garage game" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label id="xGtLabel">Game type</label>
+          <div class="seg" role="group" aria-labelledby="xGtLabel">
+            <button type="button" data-gt="cash" aria-pressed="${d.gameType === "cash"}">Cash game</button>
+            <button type="button" data-gt="tournament" aria-pressed="${d.gameType === "tournament"}">Tournament</button>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="field"><label for="xGame">Game</label>
+            <select id="xGame">
+              ${["NLHE", "PLO", "Limit Hold'em", "Mixed", "Other"].map(g =>
+                `<option ${d.game === g ? "selected" : ""}>${g}</option>`).join("")}
+            </select></div>
+          <div class="field"><label for="xStakes">Stakes</label>
+            <input type="text" id="xStakes" value="${esc(d.stakes)}" placeholder="e.g. 1/2" autocomplete="off"></div>
+        </div>
+
+        <div class="field">
+          <label id="xDurLabel">Time played <span style="font-weight:400;color:var(--muted)">(from the clock — change it if you stepped away)</span></label>
+          <div class="two-col" role="group" aria-labelledby="xDurLabel">
+            <div class="money-input"><input type="number" id="xHours" min="0" max="48" step="1" inputmode="numeric" value="${esc(d.hours)}" aria-label="Hours"></div>
+            <div class="money-input"><input type="number" id="xMinutes" min="0" max="59" step="1" inputmode="numeric" value="${esc(d.minutes)}" aria-label="Minutes"></div>
+          </div>
+        </div>
+
+        <div class="field" id="xFeeField" ${d.gameType === "cash" ? "" : "hidden"}>
+          <label for="xFee">Time rate <span style="font-weight:400;color:var(--muted)">(per hour to sit, if anything)</span></label>
+          <div class="money-input"><span>$</span><input type="number" id="xFee" min="0" step="0.01" inputmode="decimal" value="${esc(d.fee)}" placeholder="0"><span class="suffix">/hr</span></div>
+        </div>
+
+        <div class="field">
+          <label for="xNotes">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+          <textarea id="xNotes" placeholder="Table conditions, key hands, how you played…">${esc(d.notes)}</textarea>
+        </div>
+      </div>
+    </div>
+
+    ${d.hands.length ? `
+      <div class="card" style="padding:14px">
+        <h2>${d.hands.length} hand${d.hands.length === 1 ? "" : "s"} logged</h2>
+        <div id="finishHands"></div>
+        <p class="note-row" style="margin:10px 0 0">These save with the session and stay private — they're never shared with your league.</p>
+      </div>` : ""}
+
+    <button type="button" class="btn btn-danger" id="finishDiscardBtn">Throw this session away</button>`;
+
+  if (d.hands.length) renderHandsInto($("finishHands"), d.hands);
+  bindFinishSheet();
+  updateFinishResult();
+}
+
+function bindFinishSheet() {
+  const d = finishDraft;
+  const bind = (id, key, fn) => $(id).addEventListener("input", () => {
+    d[key] = $(id).value;
+    if (fn) fn();
+  });
+  bind("xBuyIn", "buyIn", updateFinishResult);
+  bind("xCashOut", "cashOut", updateFinishResult);
+  bind("xFee", "fee", updateFinishResult);
+  bind("xHours", "hours", updateFinishResult);
+  bind("xMinutes", "minutes", updateFinishResult);
+  bind("xDate", "date");
+  bind("xStakes", "stakes");
+  bind("xNotes", "notes");
+  bind("xLocationOther", "locationOther");
+  $("xGame").addEventListener("change", () => { d.game = $("xGame").value; });
+  $("xLocation").addEventListener("change", () => {
+    d.location = $("xLocation").value;
+    $("xLocOtherField").hidden = d.location !== OTHER_LOC;
+  });
+  $("finishBody").querySelectorAll("[data-gt]").forEach(b => b.addEventListener("click", () => {
+    d.gameType = b.dataset.gt;
+    renderFinishSheet();
+  }));
+  $("finishDiscardBtn").addEventListener("click", () => {
+    modal("Throw away this session?", "The time on the clock and any hands you logged go with it. This can't be undone.", [
+      { label: "Throw it away", kind: "btn-danger", onClick: () => {
+        persistTimer(null);
+        closeFinishSheet();
+        toast("Discarded");
+      }},
+      { label: "Keep it", kind: "btn-ghost" },
+    ]);
+  });
+}
+
+/** Same math as the Add form's live readout, net of the seat charge. */
+function finishNumbers() {
+  const d = finishDraft;
+  const mins = (parseInt(d.hours, 10) || 0) * 60 + (parseInt(d.minutes, 10) || 0);
+  const buyIn = parseFloat(d.buyIn);
+  const cashOut = parseFloat(d.cashOut);
+  const feeRate = parseFloat(d.fee);
+  const hourlyFee = d.gameType === "cash" && Number.isFinite(feeRate) && feeRate > 0 ? r2(feeRate) : 0;
+  const fee = hourlyFee * (mins / 60);
+  return { mins, buyIn, cashOut, hourlyFee, fee };
+}
+
+function updateFinishResult() {
+  const { mins, buyIn, cashOut, fee } = finishNumbers();
+  const out = $("finishResult");
+  if (!Number.isFinite(buyIn) || !Number.isFinite(cashOut)) {
+    out.textContent = fee > 0 ? `— (incl. −${fmtMoney(r2(fee))} in time)` : "—";
+    out.className = "";
+    return;
+  }
+  const p = cashOut - buyIn - fee;
+  out.textContent = fmtSigned(r2(p)) + (fee > 0 ? ` (incl. −${fmtMoney(r2(fee))} in time)` : "")
+    + (mins > 0 ? ` · ${fmtDur(mins)}` : "");
+  out.className = plClass(p);
+}
+
+$("finishCancelBtn").addEventListener("click", closeFinishSheet);
+$("finishSheet").addEventListener("click", (e) => { if (e.target === $("finishSheet")) closeFinishSheet(); });
+
+$("finishSaveBtn").addEventListener("click", async () => {
+  const d = finishDraft;
+  const { mins, buyIn, cashOut, hourlyFee } = finishNumbers();
+  if (!d.date) return toast("Pick a date");
+  if (mins <= 0) return toast("Enter how long you played");
+  if (!Number.isFinite(buyIn) || buyIn < 0) return toast("Enter your buy-in");
+  if (!Number.isFinite(cashOut) || cashOut < 0) return toast("Enter your cash-out (0 if you busted)");
+
+  let location = d.location === OTHER_LOC ? d.locationOther.trim() : d.location;
+  if (d.location === OTHER_LOC && location) {
+    const canon = locationChoices().find(l => l.toLowerCase() === location.toLowerCase());
+    if (canon) location = canon;
+  }
+
+  const rec = {
+    id: uuid(),
+    createdAt: Date.now(),
+    date: d.date,
+    location,
+    gameType: d.gameType,
+    game: d.game,
+    stakes: d.stakes.trim() || "?",
+    durationMinutes: mins,
+    buyIn: r2(buyIn),
+    cashOut: r2(cashOut),
+    hourlyFee,
+    notes: d.notes.trim(),
+    startedAt: d.startedAt,
+    endedAt: d.endedAt,
+    hands: d.hands,
+  };
+  try {
+    await backend.putSession(ME.uid, rec);
+  } catch (ex) {
+    return toast(errMsg(ex));
+  }
+  // Only drop the clock once the session is safely saved.
+  persistTimer(null);
+  pendingTimer = null;
+  closeFinishSheet();
+  editingId = null;
+  showView("sessions");
+  toast(`Saved · ${fmtSigned(r2(profitOf(rec)))}`);
+});
 
 /* =====================================================================
    Hand logger
@@ -3654,8 +3919,9 @@ const POSITIONS = {
 };
 const STREET_NAMES = ["Preflop", "Flop", "Turn", "River"];
 
-let hand = null;      // the hand being built
+let hand = null;       // the hand being built
 let pickTarget = null; // { kind: "hero"|"board"|"villain", i, j } slot awaiting a card
+let pickRank = null;   // rank chosen in step one of the picker, awaiting a suit
 let eqTimer = null;
 
 const blankHand = () => ({
@@ -3674,6 +3940,7 @@ const blankHand = () => ({
 function openHandSheet(existing) {
   hand = existing ? JSON.parse(JSON.stringify(existing)) : blankHand();
   pickTarget = { kind: "hero", j: 0 };
+  pickRank = null;
   $("handSheet").hidden = false;
   renderHandSheet();
 }
@@ -3681,6 +3948,7 @@ function closeHandSheet() {
   $("handSheet").hidden = true;
   hand = null;
   pickTarget = null;
+  pickRank = null;
   if (eqTimer) { clearTimeout(eqTimer); eqTimer = null; }
 }
 $("handCloseBtn").addEventListener("click", closeHandSheet);
@@ -3696,10 +3964,17 @@ function usedCards() {
   return out;
 }
 
-const cardChip = (c, sel, attrs) => {
-  if (!c) return `<button type="button" class="pcard slot ${sel ? "sel" : ""}" ${attrs}>?</button>`;
+const cardFace = (c, cls = "") => {
   const s = parseCard(c);
-  return `<button type="button" class="pcard ${SUIT_IS_RED[s & 3] ? "red" : ""} ${sel ? "sel" : ""}" ${attrs}>${cardLabel(s)}</button>`;
+  return `<span class="pcard ${cls} ${SUIT_IS_RED[s & 3] ? "red" : ""}"
+    ><span class="r">${RANK_CHARS[s >> 2]}</span><span class="s">${SUIT_SYMBOLS[s & 3]}</span></span>`;
+};
+
+const cardChip = (c, sel, attrs) => {
+  if (!c) return `<button type="button" class="pcard slot ${sel ? "sel" : ""}" ${attrs}><span class="r">Tap</span></button>`;
+  const s = parseCard(c);
+  return `<button type="button" class="pcard ${SUIT_IS_RED[s & 3] ? "red" : ""} ${sel ? "sel" : ""}" ${attrs}
+    ><span class="r">${RANK_CHARS[s >> 2]}</span><span class="s">${SUIT_SYMBOLS[s & 3]}</span></button>`;
 };
 
 const targetIs = (kind, j, i) =>
@@ -3727,7 +4002,7 @@ function renderHandSheet() {
 
     <div class="seat hero">
       <div class="seat-head">
-        <div class="lbl">Your hand</div>
+        <div class="lbl">Your hand${hand.position ? ` · ${esc(hand.position)}` : ""}</div>
         <div class="eq-pct" id="eqHero">—</div>
       </div>
       <div class="hand-cards">
@@ -3739,8 +4014,8 @@ function renderHandSheet() {
 
     <div class="field">
       <label>Board <span style="font-weight:400;color:var(--muted)">(${boardCount ? STREET_NAMES[Math.max(0, boardCount - 2)] : "preflop"})</span></label>
-      <div class="hand-cards">
-        ${hand.board.map((c, j) => `${j === 3 || j === 4 ? '<span style="width:6px"></span>' : ""}${cardChip(c, targetIs("board", j), `data-slot="board" data-j="${j}"`)}`).join("")}
+      <div class="hand-cards board-cards">
+        ${hand.board.map((c, j) => `${j === 3 || j === 4 ? '<span class="board-gap"></span>' : ""}${cardChip(c, targetIs("board", j), `data-slot="board" data-j="${j}"`)}`).join("")}
       </div>
     </div>
 
@@ -3783,20 +4058,43 @@ function renderHandSheet() {
 
 function renderPicker() {
   const used = usedCards();
-  const label = !pickTarget ? "Tap a card slot above"
+  const label = !pickTarget ? "Tap a card above to set it"
     : pickTarget.kind === "hero" ? `Your card ${pickTarget.j + 1}`
     : pickTarget.kind === "board" ? `Board card ${pickTarget.j + 1}`
     : `Opponent ${pickTarget.i + 1} · card ${pickTarget.j + 1}`;
-  $("pickerLbl").textContent = label;
-  $("pickerBody").innerHTML = SUIT_CHARS.split("").map((sc, s) => `
-    <div class="picker-suit">${SUIT_SYMBOLS[s]}</div>
-    <div class="picker-grid">
-      ${RANK_CHARS.split("").map((rc, r) => {
-        const code = rc + sc;
-        const taken = used.has(code);
-        return `<button type="button" class="${SUIT_IS_RED[s] ? "red" : ""}" data-card="${code}" ${taken ? "disabled" : ""}>${rc}</button>`;
+  $("pickerLbl").textContent = pickRank ? `${label} — pick a suit` : label;
+
+  if (!pickTarget) {
+    $("pickerBody").innerHTML = `<p class="note-row" style="margin:0">Nothing selected.</p>`;
+    return;
+  }
+
+  if (!pickRank) {
+    $("pickerBody").innerHTML = `<div class="picker-grid">
+      ${RANK_CHARS.split("").map(rc => {
+        // Grey out a rank only when all four of its suits are already dealt.
+        const gone = SUIT_CHARS.split("").every(sc => used.has(rc + sc));
+        return `<button type="button" data-rank="${rc}" ${gone ? "disabled" : ""}>${rc}</button>`;
       }).join("")}
-    </div>`).join("");
+    </div>`;
+    $("pickerBody").querySelectorAll("[data-rank]").forEach(b =>
+      b.addEventListener("click", () => { pickRank = b.dataset.rank; renderPicker(); }));
+    return;
+  }
+
+  $("pickerBody").innerHTML = `
+    <div class="picker-head">
+      <div class="lbl">${pickRank} of…</div>
+      <button type="button" class="btn-sm" id="pickBackBtn">Change rank</button>
+    </div>
+    <div class="picker-suits">
+      ${SUIT_CHARS.split("").map((sc, s) => {
+        const code = pickRank + sc;
+        return `<button type="button" class="${SUIT_IS_RED[s] ? "red" : ""}" data-card="${code}" ${used.has(code) ? "disabled" : ""}
+          aria-label="${pickRank} of ${["spades", "hearts", "diamonds", "clubs"][s]}">${SUIT_SYMBOLS[s]}</button>`;
+      }).join("")}
+    </div>`;
+  $("pickBackBtn").addEventListener("click", () => { pickRank = null; renderPicker(); });
   $("pickerBody").querySelectorAll("[data-card]").forEach(b =>
     b.addEventListener("click", () => placeCard(b.dataset.card)));
 }
@@ -3807,6 +4105,7 @@ function placeCard(code) {
   if (t.kind === "hero") hand.hero[t.j] = code;
   else if (t.kind === "board") hand.board[t.j] = code;
   else hand.villains[t.i].cards[t.j] = code;
+  pickRank = null;
   advanceTarget();
   renderHandSheet();
 }
@@ -3844,7 +4143,12 @@ function bindHandSheet() {
       else hand.villains[i].cards[j] = null;
     }
     pickTarget = kind === "villain" ? { kind, i, j } : { kind, j };
+    pickRank = null;
     renderHandSheet();
+    // The picker lives below the seats; on a phone it's off-screen when you
+    // tap a slot near the top. "nearest" leaves it alone when it's already
+    // visible, which is the common case once you're a few cards in.
+    $("pickerCard").scrollIntoView({ block: "nearest" });
   }));
   body.querySelectorAll("[data-muck]").forEach(b => b.addEventListener("click", () => {
     hand.villains[Number(b.dataset.muck)].cards = [null, null];
@@ -4266,7 +4570,7 @@ async function hostGameFlow() {
     settleView = false;
     subscribeGame(code);
     toast(`Game started — code ${code}`);
-  } catch (ex) { toast(errMsg(ex)); }
+  } catch (ex) { gameError(ex); }
 }
 
 function addGuestFlow() {
@@ -4282,11 +4586,13 @@ function addGuestFlow() {
       const name = v.name.trim();
       if (!name) { toast("Needs a name"); return false; }
       const amt = parseFloat(v.buyIn);
-      await backend.putPlayer(activeGame, "g" + uuid().slice(0, 12), {
-        name,
-        buyIns: Number.isFinite(amt) && amt > 0 ? [r2(amt)] : [],
-        cashOut: null, claim: null, guest: true, joinedAt: Date.now(),
-      });
+      try {
+        await backend.putPlayer(activeGame, "g" + uuid().slice(0, 12), {
+          name,
+          buyIns: Number.isFinite(amt) && amt > 0 ? [r2(amt)] : [],
+          cashOut: null, claim: null, guest: true, joinedAt: Date.now(),
+        });
+      } catch (ex) { gameError(ex); return; }
       toast(`${name} is in`);
     },
   });
@@ -4303,7 +4609,9 @@ function rebuyFlow(id) {
     onSubmit: async (v) => {
       const amt = parseFloat(v.amt);
       if (!Number.isFinite(amt) || amt <= 0) { toast("Enter an amount"); return false; }
-      await backend.putPlayer(activeGame, id, { ...p, buyIns: [...(p.buyIns || []), r2(amt)] });
+      try {
+        await backend.putPlayer(activeGame, id, { ...p, buyIns: [...(p.buyIns || []), r2(amt)] });
+      } catch (ex) { gameError(ex); return; }
       toast(`${p.name} +${fmtMoney(r2(amt))}`);
     },
   });
@@ -4327,12 +4635,14 @@ function editPlayerFlow(id) {
       const buy = parseFloat(v.buy);
       const out = v.out === "" ? null : parseFloat(v.out);
       if (out !== null && !Number.isFinite(out)) { toast("That cash-out isn't a number"); return false; }
-      await backend.putPlayer(activeGame, id, {
-        ...p, name,
-        buyIns: Number.isFinite(buy) && buy > 0 ? [r2(buy)] : [],
-        cashOut: out === null ? null : r2(out),
-        claim: null,
-      });
+      try {
+        await backend.putPlayer(activeGame, id, {
+          ...p, name,
+          buyIns: Number.isFinite(buy) && buy > 0 ? [r2(buy)] : [],
+          cashOut: out === null ? null : r2(out),
+          claim: null,
+        });
+      } catch (ex) { gameError(ex); return; }
       toast("Updated");
     },
   });
@@ -4351,7 +4661,9 @@ function cashOutFlow(id) {
     onSubmit: async (v) => {
       const out = parseFloat(v.out);
       if (!Number.isFinite(out) || out < 0) { toast("Enter what they counted (0 if they busted)"); return false; }
-      await backend.putPlayer(activeGame, id, { ...p, cashOut: r2(out) });
+      try {
+        await backend.putPlayer(activeGame, id, { ...p, cashOut: r2(out) });
+      } catch (ex) { gameError(ex); }
     },
   });
 }
@@ -4360,19 +4672,23 @@ async function confirmClaim(id) {
   const p = gameData.players.find(x => x.id === id);
   if (!p || !p.claim) return;
   const c = p.claim;
-  await backend.putPlayer(activeGame, id, {
-    ...p,
-    buyIns: Array.isArray(c.buyIns) ? c.buyIns : (p.buyIns || []),
-    cashOut: c.cashOut === null || c.cashOut === undefined ? p.cashOut ?? null : r2(c.cashOut),
-    claim: null,
-  });
+  try {
+    await backend.putPlayer(activeGame, id, {
+      ...p,
+      buyIns: Array.isArray(c.buyIns) ? c.buyIns : (p.buyIns || []),
+      cashOut: c.cashOut === null || c.cashOut === undefined ? p.cashOut ?? null : r2(c.cashOut),
+      claim: null,
+    });
+  } catch (ex) { return gameError(ex); }
   toast(`${p.name} confirmed`);
 }
 
 async function rejectClaim(id) {
   const p = gameData.players.find(x => x.id === id);
   if (!p) return;
-  await backend.putPlayer(activeGame, id, { ...p, claim: null });
+  try {
+    await backend.putPlayer(activeGame, id, { ...p, claim: null });
+  } catch (ex) { return gameError(ex); }
   toast("Dismissed — enter it yourself");
 }
 
@@ -4391,7 +4707,7 @@ function finalizeGame() {
         await backend.updateGame(activeGame, { status: "settled", settledAt: Date.now() });
         settleView = false;
         toast("Settled — everyone can see what they owe");
-      } catch (ex) { toast(errMsg(ex)); }
+      } catch (ex) { gameError(ex); }
     }},
     { label: "Not yet", kind: "btn-ghost" },
   ]);
@@ -4419,7 +4735,7 @@ async function joinGameFlow(rawCode) {
     subscribeGame(code);
     showView("home");
     toast(`You're in — ${game.name}`);
-  } catch (ex) { toast(errMsg(ex)); }
+  } catch (ex) { gameError(ex); }
 }
 
 function claimFlow() {
@@ -4443,11 +4759,13 @@ function claimFlow() {
       // A merge, not a whole-doc write: the rules only let a player touch
       // these three fields, and rewriting the rest would both trip that and
       // stomp any buy-in the host entered since this screen last loaded.
-      await backend.updatePlayer(activeGame, ME.uid, {
-        name: profile.nickname,
-        claim: { buyIns: [r2(buy)], cashOut: out === null ? null : r2(out) },
-        claimedAt: Date.now(),
-      });
+      try {
+        await backend.updatePlayer(activeGame, ME.uid, {
+          name: profile.nickname,
+          claim: { buyIns: [r2(buy)], cashOut: out === null ? null : r2(out) },
+          claimedAt: Date.now(),
+        });
+      } catch (ex) { gameError(ex); return; }
       toast("Sent — the host will confirm");
     },
   });
