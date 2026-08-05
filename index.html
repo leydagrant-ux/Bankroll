@@ -1998,17 +1998,41 @@ function formModal({ title, fields, submitLabel = "Save", kind = "btn-primary", 
     ${fields.map(f => `
       <div class="field">
         <label for="m_${f.id}">${esc(f.label)}</label>
-        ${f.money
+        ${f.options
+          ? `<select id="m_${f.id}">${f.options.map(o => {
+              const val = typeof o === "string" ? o : o.value;
+              const lab = typeof o === "string" ? o : o.label;
+              return `<option value="${esc(val)}" ${String(f.value ?? "") === String(val) ? "selected" : ""}>${esc(lab)}</option>`;
+            }).join("")}</select>`
+          : f.money
           ? `<div class="money-input"><span>$</span><input type="number" id="m_${f.id}" inputmode="decimal" step="0.01" min="0" value="${f.value ?? ""}" placeholder="${esc(f.placeholder || "0")}"></div>`
           : `<input type="${f.type || "text"}" id="m_${f.id}" value="${esc(f.value ?? "")}" placeholder="${esc(f.placeholder || "")}" ${f.maxlength ? `maxlength="${f.maxlength}"` : ""} autocomplete="off">`}
-      </div>`).join("")}
+      </div>
+      ${f.otherWhen !== undefined ? `
+        <div class="field" id="m_${f.id}_otherField" ${String(f.value ?? "") === String(f.otherWhen) ? "" : "hidden"}>
+          <label for="m_${f.id}_other">${esc(f.otherLabel || "Name it")}</label>
+          <input type="text" id="m_${f.id}_other" value="${esc(f.otherValue ?? "")}" placeholder="${esc(f.otherPlaceholder || "")}" maxlength="40" autocomplete="off">
+        </div>` : ""}`).join("")}
     ${note ? `<p class="note-row" style="margin:0">${note}</p>` : ""}
   </div>`;
+
+  // A select with an "Other…" entry reveals its own text field, the same way
+  // the Add form does.
+  for (const f of fields) {
+    if (f.otherWhen === undefined) continue;
+    $("m_" + f.id).addEventListener("change", () => {
+      $(`m_${f.id}_otherField`).hidden = $("m_" + f.id).value !== String(f.otherWhen);
+    });
+  }
+
   const wrap = $("modalBtns");
   wrap.innerHTML = "";
   const submit = async () => {
     const vals = {};
-    for (const f of fields) vals[f.id] = $("m_" + f.id).value;
+    for (const f of fields) {
+      vals[f.id] = $("m_" + f.id).value;
+      if (f.otherWhen !== undefined) vals[f.id + "Other"] = $(`m_${f.id}_other`).value;
+    }
     if (await onSubmit(vals) !== false) closeModal();
   };
   const go = document.createElement("button");
@@ -2664,6 +2688,25 @@ function locationChoices() {
   customs.sort((a, b) => a.localeCompare(b));
   return [...PRESET_LOCATIONS, ...customs];
 }
+/**
+ * The same venues as `locationChoices()`, with the ones you actually play at
+ * floated to the top. Sorting starts from that already-deduped list, so a
+ * frequently-played venue moves up rather than appearing twice — and venues
+ * you've never logged keep their usual order underneath.
+ */
+function frequentLocations() {
+  const counts = new Map();
+  for (const s of sessions) {
+    const l = (s.location || "").trim().toLowerCase();
+    if (l) counts.set(l, (counts.get(l) || 0) + 1);
+  }
+  return locationChoices()
+    .map((l, i) => ({ l, i, n: counts.get(l.toLowerCase()) || 0 }))
+    // Stable: equal counts (including all the zeroes) keep the original order.
+    .sort((a, b) => b.n - a.n || a.i - b.i)
+    .map(x => x.l);
+}
+
 function refreshLocationOptions(selected) {
   const sel = $("fLocation");
   const keep = selected !== undefined ? selected : sel.value;
@@ -3623,18 +3666,41 @@ function renderStartCard() {
 
 function startTimerFlow() {
   const locSel = $("fLocation").value;
-  const loc = locSel === OTHER_LOC ? $("fLocationOther").value.trim() : locSel;
+  const typed = locSel === OTHER_LOC ? $("fLocationOther").value.trim() : "";
+  // Most-played first, so the room you're most likely standing in is already
+  // selected. Only a deliberate signal overrides that — a venue you typed into
+  // the Add form, or the default set in Account. The Add form's own dropdown
+  // value doesn't count: left alone it just reads as the first preset.
+  const choices = frequentLocations();
+  const deliberate = typed || profile?.defaultLocation || "";
+  const preselect = choices.find(l => l.toLowerCase() === deliberate.toLowerCase())
+    || (typed ? OTHER_LOC : choices[0]) || OTHER_LOC;
+
   formModal({
     title: "Start the clock",
     fields: [
-      { id: "loc", label: "Where", value: loc || "", placeholder: "e.g. Texas Card House", maxlength: 40 },
+      {
+        id: "loc", label: "Where", value: preselect,
+        options: [...choices, { value: OTHER_LOC, label: "Other…" }],
+        otherWhen: OTHER_LOC, otherLabel: "Name the spot",
+        otherValue: preselect === OTHER_LOC ? typed : "",
+        otherPlaceholder: "e.g. Mike's garage game",
+      },
       { id: "stakes", label: "Stakes", value: $("fStakes").value.trim(), placeholder: "e.g. 1/2", maxlength: 20 },
     ],
     submitLabel: "Start",
     onSubmit: (v) => {
+      let loc = v.loc === OTHER_LOC ? v.locOther.trim() : v.loc;
+      if (v.loc === OTHER_LOC && loc) {
+        // Typed a venue that already exists in some other casing — use the
+        // spelling already on file so it doesn't split into two entries.
+        const canon = locationChoices().find(l => l.toLowerCase() === loc.toLowerCase());
+        if (canon) loc = canon;
+      }
+      if (!loc) { toast("Pick where you're playing"); return false; }
       persistTimer({
         startedAt: Date.now(), bankedMs: 0, pausedAt: null,
-        location: v.loc.trim(), stakes: v.stakes.trim(), hands: [],
+        location: loc, stakes: v.stakes.trim(), hands: [],
       });
       toast("Clock running — good luck");
     },
@@ -3708,7 +3774,7 @@ function closeFinishSheet() {
 
 function renderFinishSheet() {
   const d = finishDraft;
-  const opts = locationChoices()
+  const opts = frequentLocations()
     .map(l => `<option value="${esc(l)}" ${d.location === l ? "selected" : ""}>${esc(l)}</option>`)
     .join("") + `<option value="${OTHER_LOC}" ${d.location === OTHER_LOC ? "selected" : ""}>Other…</option>`;
 
