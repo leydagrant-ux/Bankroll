@@ -1,0 +1,16 @@
+# The repo is a static site — no build, no dependencies. Everything below is
+# local tooling that happens to sit in the working copy.
+
+### JetBrains (the project is opened as an IntelliJ module locally) ###
+.idea/
+*.iml
+
+### Claude Code — personal settings; .claude/settings.json stays shareable ###
+.claude/settings.local.json
+
+### VS Code ###
+.vscode/
+
+### OS ###
+.DS_Store
+Thumbs.db

@@ -2,8 +2,8 @@
  * Regression net for the two pieces of this app that are pure math and would
  * fail silently if they broke: home game settle-up and hand equity.
  *
- * Runs in the browser at ?selftest (results render on the page) and under node
- * (`node --input-type=module -e "import('./selftest.js').then(m=>m.report())"`).
+ * Runs in the browser by opening selftest.html (results render on the page) and
+ * under node (`node --input-type=module -e "import('./selftest.js').then(m=>m.report())"`).
  * The settle cases are ported from PokerApp/src/lib/__tests__/settle.check.ts,
  * where they were hand-checked; the equity cases are published matchups whose
  * numbers are known independently of this code.
